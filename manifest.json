@@ -1,0 +1,19 @@
+{
+  "name": "Connectly",
+  "short_name": "Connectly",
+  "description": "Connect. Chat. Share.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f3f6f5",
+  "theme_color": "#0f9d8f",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%230f9d8f'/%3E%3Cpath d='M150 170h212a24 24 0 0 1 24 24v110a24 24 0 0 1-24 24H250l-70 56v-56h-30a24 24 0 0 1-24-24V194a24 24 0 0 1 24-24z' fill='white'/%3E%3C/svg%3E",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
