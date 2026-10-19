@@ -1,6 +1,6 @@
 'use strict';
 // Bump VERSION on every release so old caches are removed.
-const VERSION = 'connectly-v1.0.1';
+const VERSION = 'connectly-v1.1.0';
 const SHELL = ['./', './index.html', './manifest.json'];
 const PEER = 'https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js';
 
