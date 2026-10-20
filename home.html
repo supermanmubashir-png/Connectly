@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Connectly</title>
+<meta name="theme-color" content="#0f9d8f">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.png" type="image/png">
+<link rel="apple-touch-icon" href="icon.png">
+<style>
+:root{--bg:#f3f6f5;--card:#fff;--tx:#17201f;--mut:#617370;--ac:#0f9d8f;--acs:#d6f1ed;--out:#c8eee8;--in:#fff;--bd:#e0e8e6;--err:#d64545;--warn:#c9821a;--ok:#1d9b57;--r:20px}
+[data-theme=dark]{--bg:#0e1413;--card:#172120;--tx:#e8f0ef;--mut:#8da09d;--acs:#1b3b37;--out:#1b4943;--in:#202c2b;--bd:#2a3837}
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{font:15px/1.4 system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--tx);overflow:hidden}
+button,input,textarea,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+#app{height:100dvh;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top)}
+main{flex:1;min-height:0;position:relative}
+.view{position:absolute;inset:0;display:none}.view.on{display:flex}
+.ib{background:none;border:0;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;cursor:pointer;color:var(--tx)}
+.ib:hover{background:var(--acs)}.ib svg{width:24px;height:24px;fill:currentColor}
+.btn{border:0;border-radius:999px;padding:10px 18px;cursor:pointer;background:var(--acs);color:var(--tx);min-height:44px}
+.btn.pri{background:var(--ac);color:#fff}.btn.danger{background:var(--err);color:#fff}
+.lnk{background:none;border:0;color:var(--ac);cursor:pointer;padding:6px 0;text-decoration:underline}
+input,textarea,select{background:var(--bg);border:1px solid var(--bd);border-radius:14px;padding:10px 14px;width:100%}
+/* chats */
+#list{width:100%;display:flex;flex-direction:column;background:var(--card);min-width:0}
+.hd{display:flex;align-items:center;gap:8px;padding:10px 12px;min-height:60px}
+.hd h1{font-size:22px;margin:0;flex:1}
+.sig{font-size:12px;color:var(--mut)}
+#sq{margin:0 12px 8px;width:auto}
+#cl{flex:1;overflow:auto;padding:4px 8px}
+.ci{display:flex;gap:12px;align-items:center;padding:10px;border-radius:var(--r);cursor:pointer;width:100%;background:none;border:0;text-align:left}
+.ci:hover,.ci.sel{background:var(--acs)}
+.av{width:48px;height:48px;border-radius:50%;background:var(--ac);color:#fff;display:grid;place-items:center;font-weight:600;position:relative;flex:none}
+.av i{position:absolute;right:0;bottom:0;width:13px;height:13px;border-radius:50%;border:2px solid var(--card);background:var(--mut)}
+.av i.online{background:var(--ok)}.av i.connecting,.av i.reconnecting{background:var(--warn)}.av i.failed{background:var(--err)}
+.cm{flex:1;min-width:0}.cm b,.cm span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cm span{color:var(--mut);font-size:13px}.ct{font-size:12px;color:var(--mut);text-align:right}
+.bg{background:var(--ac);color:#fff;border-radius:999px;font-size:12px;padding:1px 7px;display:inline-block;margin-top:3px}
+#chat{display:none;flex:1;flex-direction:column;min-width:0}
+#v-chats.open #list{display:none}#v-chats.open #chat{display:flex}
+#emp,.empty{margin:auto;text-align:center;color:var(--mut);padding:24px;max-width:340px}
+#cc{display:none;flex-direction:column;flex:1;min-height:0}
+#chat.has #cc{display:flex}#chat.has #emp{display:none}
+#ch{background:var(--card);border-bottom:1px solid var(--bd)}
+#ch .nm{flex:1;min-width:0}#ch .nm b,#ch .nm span{display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#ch .nm span{font-size:12px;color:var(--mut)}
+#cs{display:none;margin:6px 12px}
+#msgs{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:6px}
+.m{max-width:min(78%,560px);padding:8px 12px;border-radius:18px;position:relative;word-wrap:break-word;overflow-wrap:anywhere}
+.m.in{background:var(--in);align-self:flex-start;border-bottom-left-radius:6px}
+.m.out{background:var(--out);align-self:flex-end;border-bottom-right-radius:6px}
+.m .tx{white-space:pre-wrap}.m .mt{font-size:11px;color:var(--mut);margin-top:2px;display:flex;gap:6px;align-items:center;justify-content:flex-end}
+.m .mb{background:none;border:0;color:var(--mut);cursor:pointer;padding:0 4px}
+.file .fn{font-weight:600}.file .fs{font-size:12px;color:var(--mut)}.file .err,.m .er{color:var(--err)}
+.bar{height:6px;background:var(--bd);border-radius:6px;overflow:hidden;margin:6px 0;min-width:180px}.bar i{display:block;height:100%;background:var(--ac)}
+.pv{max-width:100%;max-height:260px;border-radius:12px;margin-top:6px;display:block}
+#cp{display:flex;gap:6px;align-items:flex-end;padding:8px 10px calc(8px);background:var(--card);border-top:1px solid var(--bd)}
+#cp textarea{resize:none;max-height:120px;border-radius:22px}
+/* settings */
+#v-set{overflow:auto;padding:12px;flex-direction:column;gap:12px;align-items:center}
+.card{background:var(--card);border-radius:var(--r);padding:16px;width:100%;max-width:720px}
+.card h2{margin:0 0 8px;font-size:16px}.card p{margin:6px 0;color:var(--mut)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row.end{justify-content:flex-end;margin-top:14px}
+.row>*{flex:0 1 auto}.grow{flex:1 1 160px!important}
+details summary{cursor:pointer;padding:6px 0}details p{color:var(--mut)}
+/* nav */
+nav{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom));width:min(92vw,440px);display:flex;gap:4px;padding:6px;border-radius:999px;background:color-mix(in srgb,var(--card) 82%,transparent);-webkit-backdrop-filter:blur(18px) saturate(1.4);backdrop-filter:blur(18px) saturate(1.4);box-shadow:0 8px 28px rgba(0,0,0,.18),0 0 0 1px var(--bd);z-index:5}
+nav button{flex:1;background:none;border:0;border-radius:999px;color:var(--mut);display:flex;flex-direction:column;align-items:center;gap:1px;font-size:11px;cursor:pointer;padding:7px 4px;transition:background .25s,color .25s}
+nav .pill{display:grid;place-items:center}
+nav svg{width:22px;height:22px;fill:currentColor}
+nav button.on{background:var(--acs);color:var(--ac);font-weight:600}
+@media(max-width:819px){body.inchat nav{display:none}}
+@media(min-width:820px){#app main{margin-bottom:92px}nav{width:460px;bottom:16px}}
+dialog{border:0;border-radius:28px;background:var(--card);color:var(--tx);padding:20px;width:min(460px,92vw)}
+dialog::backdrop{background:rgba(0,0,0,.45)}dialog h3{margin:0 0 10px}dialog p{color:var(--mut);margin:6px 0}
+.mono{font-family:ui-monospace,Consolas,monospace;font-size:13px;word-break:break-all}
+#toasts{position:fixed;left:0;right:0;bottom:calc(84px + env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none;z-index:9}
+.toast{background:#263130;color:#fff;border-radius:16px;padding:10px 16px;pointer-events:auto;max-width:92vw;display:flex;gap:12px;align-items:center}
+.toast button{background:none;border:0;color:#7fe3d8;cursor:pointer}
+@media(min-width:820px){#list{width:360px;flex:none;border-right:1px solid var(--bd)}#chat{display:flex}#v-chats.open #list{display:flex}.bk{display:none!important}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+#cl,#stp{padding-bottom:104px}#v-set{padding-bottom:110px}#emb{font-size:22px}
+[data-ac=blue]{--ac:#2f7de1;--acs:#d9e8fb;--out:#cfe2fa}[data-ac=purple]{--ac:#7c5cd6;--acs:#e6dffa;--out:#ddd3f7}[data-ac=rose]{--ac:#d6457a;--acs:#fbdce8;--out:#f7cfdf}[data-ac=amber]{--ac:#d98a1c;--acs:#fbebd0;--out:#f8e2bc}[data-ac=green]{--ac:#2e9b4f;--acs:#d9f3e0;--out:#cdeed7}
+[data-theme=dark][data-ac=blue]{--acs:#1b2e4a;--out:#1d3a63}[data-theme=dark][data-ac=purple]{--acs:#2b2347;--out:#3a2f66}[data-theme=dark][data-ac=rose]{--acs:#47202f;--out:#5e2a3f}[data-theme=dark][data-ac=amber]{--acs:#433116;--out:#5a431c}[data-theme=dark][data-ac=green]{--acs:#1a3b25;--out:#1f4d30}
+html[data-fs=s] body{font-size:13.5px}html[data-fs=l] body{font-size:17px}
+#msgs[data-wp=dots]{background-image:radial-gradient(var(--bd) 1.2px,transparent 1.2px);background-size:20px 20px}#msgs[data-wp=lines]{background-image:repeating-linear-gradient(45deg,transparent 0 14px,var(--bd) 14px 15px)}#msgs[data-wp=tint]{background:var(--acs)}
+.tabs{display:flex;gap:6px;padding:0 12px 8px}.tabs button{flex:1;border:0;border-radius:999px;padding:8px;background:var(--bg);cursor:pointer;color:var(--mut)}.tabs button.on{background:var(--acs);color:var(--ac);font-weight:600}
+.chips{display:flex;gap:6px;padding:0 12px 6px;overflow:auto}.chip{border:1px solid var(--bd);background:none;border-radius:999px;padding:4px 12px;cursor:pointer;white-space:nowrap}.chip.on{background:var(--acs);border-color:var(--ac)}
+.av img{width:100%;height:100%;border-radius:50%;object-fit:cover}.av.ring{box-shadow:0 0 0 3px var(--card),0 0 0 5px var(--ac)}.av.ring.seen{box-shadow:0 0 0 3px var(--card),0 0 0 5px var(--mut)}
+.q{border-left:3px solid var(--ac);background:rgba(127,127,127,.12);border-radius:8px;padding:4px 8px;margin-bottom:4px;font-size:13px}.q b{display:block;color:var(--ac)}.q span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--mut)}
+.rc{position:absolute;bottom:-12px;right:10px;background:var(--card);border:1px solid var(--bd);border-radius:999px;padding:0 6px;font-size:13px}.m.hr{margin-bottom:12px}
+#rb{display:none;align-items:center;gap:8px;padding:6px 12px;background:var(--card);border-top:1px solid var(--bd)}#rb .q{flex:1;margin:0;min-width:0}
+#em{display:none;padding:8px 10px;background:var(--card);border-top:1px solid var(--bd);max-height:250px;overflow:auto}
+.ov{position:fixed;inset:0;background:#000e;z-index:20;display:flex;flex-direction:column;color:#fff}.ov .sc{flex:1;display:grid;place-items:center;align-content:center;padding:24px;text-align:center;font-size:26px;min-height:0}.ov .sc img{max-width:100%;max-height:70vh;border-radius:12px}
+.pb{display:flex;gap:4px;padding:10px}.pb i{flex:1;height:3px;border-radius:3px;background:#fff5}.pb i.d{background:#fff}.ov .tp{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;gap:8px}.ov .ib{color:#fff}
+.sw{display:flex;gap:8px;flex-wrap:wrap}.sw button{width:32px;height:32px;border-radius:50%;border:2px solid transparent;cursor:pointer}.sw button.on{border-color:var(--tx)}
+.star{color:#e0a800}.del{font-style:italic;color:var(--mut)}.mt .ed{font-style:italic}
+html[data-bub=classic] .m{border-radius:8px}html[data-bub=flat] .m{border-radius:4px;border:1px solid var(--bd)}
+html[data-dens=compact] .m{padding:4px 10px}html[data-dens=compact] #msgs{gap:3px}html[data-dens=compact] .ci{padding:6px 10px}
+html[data-rm=on] *{transition:none!important;animation:none!important}
+.dsep{align-self:center;background:var(--card);color:var(--mut);font-size:12px;border-radius:999px;padding:2px 12px;margin:6px 0}
+.m a{color:var(--ac)}.fw{font-size:12px;color:var(--mut);font-style:italic}
+#lock{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px}#lock input{max-width:260px;text-align:center;font-size:22px;letter-spacing:6px}
+
+html[data-avs=off] .ci .av{display:none}
+.m.nb{background:none;padding:0}.stk{width:var(--stk,150px);height:var(--stk,150px);object-fit:contain;display:block}.tx.big{font-size:44px;line-height:1.1}
+#mic.rec{color:#fff;background:var(--err)}
+.sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:6px;margin-top:8px}.sg img{width:100%;aspect-ratio:1;object-fit:contain;cursor:pointer;border-radius:10px;background:var(--bg)}.sg .it{position:relative}.sg .it b{position:absolute;top:0;right:0;background:var(--card);border-radius:50%;width:20px;height:20px;text-align:center;cursor:pointer;font-weight:400;line-height:20px}
+#v-posts{overflow:auto;padding:12px 12px 110px;flex-direction:column;align-items:center}.pw{width:100%;max-width:640px;display:flex;flex-direction:column;gap:12px}
+.pc{background:var(--card);border-radius:var(--r);padding:14px}.pc img.pi{max-width:100%;border-radius:14px;margin-top:8px;display:block}.pc .row{margin-top:8px}
+</style>
+</head>
+<body>
+<div id="app">
+<main>
+ <section class="view on" id="v-chats">
+  <div id="list">
+   <div class="hd"><h1>Connectly</h1><button class="ib" id="addb" aria-label="Add contact"></button></div>
+   <div class="sig" style="padding:0 16px 6px" id="sigl">Connection service: starting…</div>
+   <div class="tabs" role="tablist"><button data-t="chats" class="on">Chats</button><button data-t="status">Status</button></div>
+   <input id="sq" type="search" placeholder="Search chats" aria-label="Search chats">
+   <div class="chips" id="chips"></div>
+   <div id="cl"></div>
+   <div id="stp" style="display:none;flex:1;overflow:auto;padding:4px 12px"></div>
+  </div>
+  <div id="chat">
+   <div id="emp"><h2>Connect. Chat. Share.</h2><p>Pick a chat, or add a contact once and Connectly will reconnect to them automatically afterwards.</p></div>
+   <div id="cc">
+    <div class="hd" id="ch">
+     <button class="ib bk" id="bkb" aria-label="Back to chats"></button>
+     <div class="av" id="cav"></div>
+     <div class="nm"><b id="cn"></b><span id="cst"></span></div>
+     <button class="ib" id="rcb" aria-label="Reconnect" title="Reconnect"></button>
+     <button class="ib" id="srb" aria-label="Search in conversation"></button>
+     <button class="ib" id="mnb" aria-label="Contact options"></button>
+    </div>
+    <input id="cs" type="search" placeholder="Search in conversation" aria-label="Search in conversation">
+    <div id="msgs" role="log" aria-live="polite"></div>
+    <div id="rb"></div><div id="em"></div>
+    <div id="cp">
+     <button class="ib" id="atb" aria-label="Attach files"></button>
+     <button class="ib" id="emb" aria-label="Emoji">😊</button>
+     <textarea id="inp" rows="1" placeholder="Message" aria-label="Message"></textarea>
+     <button class="ib" id="mic" aria-label="Voice note"></button>
+     <button class="ib" id="snb" aria-label="Send"></button>
+     <input type="file" id="fi" multiple hidden>
+    </div>
+   </div>
+  </div>
+ </section>
+ <section class="view" id="v-set"></section>
+ <section class="view" id="v-posts"></section>
+</main>
+<nav aria-label="Main">
+ <button data-v="chats" class="on"><span class="pill" data-i="chat"></span>Chats</button>
+ <button data-v="posts"><span class="pill" data-i="post"></span>Posts</button>
+ <button data-v="util"><span class="pill" data-i="grid"></span>UtiliX</button>
+ <button data-v="set"><span class="pill" data-i="tune"></span>Settings</button>
+</nav>
+</div>
+<div id="toasts" aria-live="polite"></div>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js"></script>
+<script>
+'use strict';
+const VER='1.3',UTIL='https://supermanmubashir-png.github.io/UtiliX',CH=65536,B32='abcdefghijklmnopqrstuvwxyz234567',$=s=>document.querySelector(s);
+const ICO={mic:'M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11z',post:'M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm-5 14H7v-2h7zm3-4H7v-2h10zm0-4H7V7h10z',chat:'M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z',grid:'M3 3h8v8H3zm10 0h8v8h-8zM3 13h8v8H3zm10 0h8v8h-8z',tune:'M3 17v2h6v-2zM3 5v2h10V5zm10 14v2h8v-2h-8zM7 9v2H3v2h4v2h2V9zm14 4v-2H11v2zm-6-4h2V7h4V5h-4V3h-2z',add:'M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z',send:'M2 21l21-9L2 3v7l15 2-15 2z',attach:'M16.5 6v11.5a4 4 0 0 1-8 0V5a2.5 2.5 0 0 1 5 0v10.5a1 1 0 0 1-2 0V6H10v9.5a2.5 2.5 0 0 0 5 0V5a4 4 0 0 0-8 0v12.5a5.5 5.5 0 0 0 11 0V6z',back:'M20 11H7.8l5.6-5.6L12 4l-8 8 8 8 1.4-1.4L7.8 13H20z',search:'M15.5 14h-.8l-.3-.3A6.5 6.5 0 1 0 14 15.5l.3.3v.8l5 5 1.5-1.5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z',more:'M12 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm0 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm0 6a2 2 0 1 0 0 4 2 2 0 0 0 0-4z',refresh:'M17.65 6.35A8 8 0 1 0 19.73 14h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4z'};
+const ic=n=>{const N='http://www.w3.org/2000/svg',s=document.createElementNS(N,'svg'),p=document.createElementNS(N,'path');s.setAttribute('viewBox','0 0 24 24');p.setAttribute('d',ICO[n]);s.append(p);return s};
+const h=(t,a={},...c)=>{const e=document.createElement(t);for(const k in a){const v=a[k];if(v==null||v===false)continue;if(k==='class')e.className=v;else if(k.startsWith('on'))e.addEventListener(k.slice(2),v);else e.setAttribute(k,v===true?'':v)}for(const x of c.flat())if(x!=null&&x!==false)e.append(x.nodeType?x:String(x));return e};
+const rnd=n=>[...crypto.getRandomValues(new Uint8Array(n))].map(x=>B32[x%32]).join(''),sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const fmtB=n=>n<1024?n+' B':n<1048576?(n/1024).toFixed(1)+' KB':n<1073741824?(n/1048576).toFixed(1)+' MB':(n/1073741824).toFixed(2)+' GB';
+const fmtT=t=>{const d=new Date(t);return d.toDateString()===new Date().toDateString()?d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:S.prefs.h24?false:undefined}):d.toLocaleDateString([],{day:'numeric',month:'short'})};
+const S={me:null,cs:new Map(),link:new Map(),cur:null,msgs:[],peer:null,sig:'connecting',sigTries:0,prefs:{theme:'system',maxMB:200,keep:true,ac:'teal',fs:'m',wp:'dots',enter:true,rcpt:true,typ:true,notif:false,showAv:true,stMode:'all',stList:[],bub:'round',dens:'cozy',h24:false,ts:true,rm:false,links:true,imgp:true,dbl:'',snd:false,vib:false,dnd:false,dndF:'22:00',dndT:'07:00',hidep:false,ask:false,defDis:0,auto:true,maxTry:6,sig:{host:'',port:'',path:'',secure:true},stHrs:24,stSpd:6,pubOn:false,lockMin:1,avs:true,keeparch:false,sort:'recent',dsp:true,asc:true,big:true,tbadge:false,blur:false,cfm:false,npv:false,saver:false,hidesw:false,vn:true,vnMax:120,stkSz:'m',poMode:'all',poList:[],likes:true},q:'',inv:new Map(),tx:new Map(),rx:new Map(),outq:[],busy:false,urls:{},mem:new Map(),ctq:'',sts:{mine:[],theirs:{}},posts:{mine:[],theirs:{}},flt:'all',tab:'chats',reply:null,edit:null,stat:{tx:0,rx:0},lock:null,locked:0};
+const IMG=['image/png','image/jpeg','image/gif','image/webp'],AUD=['audio/webm','audio/ogg','audio/mp4','audio/mpeg','audio/wav','audio/x-m4a'],EMO=/^(?:\p{Extended_Pictographic}[\u{1F3FB}-\u{1F3FF}\uFE0F\u200D]*\s*){1,3}$/u;
+function toast(t,act,label){const e=h('div',{class:'toast',role:'status'},t,act?h('button',{onclick:()=>{act();e.remove()}},label||'OK'):null);$('#toasts').append(e);setTimeout(()=>e.remove(),act?12000:4500)}
+function modal(title,body,btns){return new Promise(res=>{const d=h('dialog',{},h('h3',{},title),body,h('div',{class:'row end'},btns.map(([l,v,c])=>h('button',{class:'btn '+(c||''),onclick:()=>d.close(v)},l))));d.addEventListener('close',()=>{d.remove();res(d.returnValue||null)});document.body.append(d);d.showModal()})}
+const confirmM=(t,m,ok='Confirm',danger)=>modal(t,h('p',{},m),[['Cancel','no'],[ok,'ok',danger?'danger':'pri']]).then(v=>v==='ok');
+const ask=(t,label,val='')=>{const i=h('input',{value:val,'aria-label':label,maxlength:40});return modal(t,i,[['Cancel','no'],['Save','ok','pri']]).then(v=>v==='ok'?i.value.trim().slice(0,40):null)};
+/* ---------- IndexedDB ---------- */
+const DB=new Promise((ok,no)=>{const r=indexedDB.open('connectly',1);r.onupgradeneeded=()=>{const d=r.result;d.createObjectStore('contacts',{keyPath:'id'});d.createObjectStore('msgs',{keyPath:'id'}).createIndex('chat','chat');d.createObjectStore('blobs');d.createObjectStore('kv')};r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)});
+const IO=(st,mode,fn)=>DB.then(d=>new Promise((ok,no)=>{const t=d.transaction(st,mode),r=fn(t.objectStore(st));t.oncomplete=()=>ok(r&&'result' in r?r.result:r);t.onerror=t.onabort=()=>no(t.error||new Error('Transaction failed'))}));
+const dbGet=(s,k)=>IO(s,'readonly',o=>o.get(k)),dbAll=s=>IO(s,'readonly',o=>o.getAll()),dbPut=(s,v,k)=>IO(s,'readwrite',o=>o.put(v,k)),dbDel=(s,k)=>IO(s,'readwrite',o=>o.delete(k)),dbChat=c=>IO('msgs','readonly',o=>o.index('chat').getAll(c));
+const safe=async p=>{try{return await p}catch(e){toast(e&&e.name==='QuotaExceededError'?'Storage is full. Export a backup, then clear history.':'Storage error: '+(e&&e.name||'unknown'));return null}};
+const saveC=c=>safe(dbPut('contacts',c)),saveM=m=>{const{...x}=m;delete x.speed;return safe(dbPut('msgs',x))};
+async function delChat(id){const ms=await dbChat(id);for(const m of ms)if(m.file)await dbDel('blobs',m.id).catch(()=>{});await IO('msgs','readwrite',o=>{const r=o.index('chat').openKeyCursor(IDBKeyRange.only(id));r.onsuccess=()=>{const c=r.result;if(c){o.delete(c.primaryKey);c.continue()}};return r})}
+const getBlob=async m=>S.mem.get(m.id)||await dbGet('blobs',m.id).catch(()=>null);
+const urlOf=(id,b)=>S.urls[id]||(S.urls[id]=URL.createObjectURL(b));
+const revoke=()=>{for(const k in S.urls)URL.revokeObjectURL(S.urls[k]);S.urls={}};
+/* ---------- crypto helpers ---------- */
+const enc=s=>new TextEncoder().encode(s),hex=b=>[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
+async function mac(key,s){const k=await crypto.subtle.importKey('raw',enc(key),{name:'HMAC',hash:'SHA-256'},false,['sign']);return hex(await crypto.subtle.sign('HMAC',k,enc(s)))}
+async function fp(key){return hex(await crypto.subtle.digest('SHA-256',enc('cly-fp|'+key))).slice(0,12).match(/.{4}/g).join(' ')}
+/* ---------- theme ---------- */
+function theme(){const t=S.prefs.theme,d=document.documentElement.dataset;d.ac=S.prefs.ac;d.fs=S.prefs.fs;d.bub=S.prefs.bub;d.dens=S.prefs.dens;d.rm=S.prefs.rm?'on':'off';d.avs=S.prefs.avs?'on':'off';document.documentElement.style.setProperty('--stk',{s:'110px',m:'150px',l:'200px'}[S.prefs.stkSz]||'150px');$('#msgs').dataset.wp=S.prefs.wp;d.theme=t==='system'?(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'):t}
+matchMedia('(prefers-color-scheme:dark)').addEventListener('change',theme);
+/* ---------- signaling (PeerJS Cloud) ---------- */
+S.dbg=[];const dbg=t=>{S.dbg.push(new Date().toLocaleTimeString()+' '+t);if(S.dbg.length>40)S.dbg.shift();const e=$('#dbg');if(e)e.textContent=S.dbg.join('\n')};
+const iceList=()=>{const l=[{urls:'stun:stun.l.google.com:19302'}],t=S.prefs.turn;const u=((t&&t.url)||'').split(/[\s,]+/).filter(x=>/^turns?:/.test(x));if(u.length)l.push({urls:u,username:t.user||'',credential:t.cred||''});return l};
+const setTurn=(k,v)=>{S.prefs.turn=Object.assign({},S.prefs.turn,{[k]:v.trim()});savePrefs();toast('Saved. Press Restart connection to apply.')};
+const SIGT={connecting:'connecting…',online:'online',offline:'offline (retrying)',error:'unavailable'};
+function setSig(s,note){S.sig=s;S.sigNote=note||'';$('#sigl').textContent='Connection service (PeerJS Cloud): '+SIGT[s]+(note?' – '+note:'');if(S.view==='set')renderSet()}
+function startPeer(){
+ if(typeof Peer==='undefined'){setSig('error','PeerJS library could not load (are you offline?)');return}
+ const old=S.peer;S.peer=null;try{old&&old.destroy()}catch{}
+ setSig('connecting');dbg('starting signaling');
+ const p=S.peer=new Peer(S.me.id,peerOpts());
+ p.on('open',()=>{S.sigTries=0;dbg('registered with PeerJS Cloud');setSig('online');S.cs.forEach(c=>c.id!=='self'&&kick(c.id,true))});
+ p.on('connection',c=>onConn(c,false));
+ p.on('disconnected',()=>{if(p!==S.peer)return;dbg('signaling disconnected');setSig('offline');sigRetry()});
+ p.on('close',()=>{if(p===S.peer){dbg('signaling closed');setSig('offline');sigRetry(true)}});
+ p.on('error',e=>{dbg('error '+e.type+': '+String(e.message).slice(0,120));
+  if(e.type==='peer-unavailable'){const id=((String(e.message).match(/peer\s+(\S+)/)||[])[1]||'');if(S.cs.has(id)){clearTimeout(lk(id).timer);schedule(id)}else{toast('Could not reach that device. The invitation may be wrong, expired, or the other device is offline.')}}
+  else if(e.type==='unavailable-id')setSig('error','this device ID is already registered (another tab open, or it was copied elsewhere)');
+  else if(['network','server-error','socket-error','socket-closed'].includes(e.type)){setSig('offline','network error');sigRetry()}
+  else toast('Connection error: '+e.type)})}
+function sigRetry(re){if(S.sigTimer)return;if(S.sigTries>=8){setSig('error','gave up after repeated failures; use Settings → Restart');return}
+ const d=Math.min(30000,2000*2**S.sigTries++);S.sigTimer=setTimeout(()=>{S.sigTimer=0;if(document.hidden)return;if(!re&&S.peer&&S.peer.disconnected&&!S.peer.destroyed)S.peer.reconnect();else startPeer()},d)}
+/* ---------- links & reconnection ---------- */
+const lk=id=>{let L=S.link.get(id);if(!L){L={state:'offline',tries:0,conn:null,timer:0};S.link.set(id,L)}return L};
+function setLink(id,st){lk(id).state=st;renderList();if(S.cur===id)renderHead()}
+const STT={online:'Online',connecting:'Connecting…',reconnecting:'Reconnecting…',offline:'Offline',failed:'Connection failed'};
+function kick(id,reset,man){const ct=S.cs.get(id);if(!ct||id==='self'||ct.paused)return;if(!S.prefs.auto&&!man)return;const L=lk(id);if(L.conn&&L.conn.open)return;if(reset){L.tries=0;clearTimeout(L.timer)}connectTo(id)}
+function connectTo(id){const L=lk(id);if(!S.peer||!S.peer.open){setLink(id,'offline');return}if(L.conn&&L.conn.open)return;
+ clearTimeout(L.timer);setLink(id,L.tries?'reconnecting':'connecting');
+ const c=S.peer.connect(id,{reliable:true});onConn(c,true);
+ L.timer=setTimeout(()=>{if(lk(id).state!=='online'){try{c.close()}catch{}schedule(id)}},15000)}
+function schedule(id){const ct=S.cs.get(id);if(!ct||ct.paused)return;const L=lk(id);clearTimeout(L.timer);
+ if(!S.prefs.auto){setLink(id,'offline');return}if(L.tries>=(S.prefs.maxTry||6)){setLink(id,'failed');return}
+ const d=Math.min(60000,1500*2**L.tries++)*(.8+Math.random()*.4);setLink(id,'reconnecting');
+ L.timer=setTimeout(()=>{if(document.hidden){setLink(id,'offline');return}connectTo(id)},d)}
+function adopt(c,id){const L=lk(id),old=L.conn;
+ if(old&&old!==c&&old.open){const rank=x=>x._out?S.me.id:x.peer;if(rank(old)<=rank(c)){c._sup=1;c.close();return}old._sup=1;old.close()}
+ L.conn=c;L.tries=0;clearTimeout(L.timer);setLink(id,'online');flush(id);sendProf(id);stSendTo(id);poSendTo(id);plSync(id);if(S.cs.get(id).dis)c.send({v:1,t:'dis',s:S.cs.get(id).dis});if(S.cur===id)sendRead(id)}
+function onClose(c){const L=S.link.get(c.peer);if(!L||L.conn!==c)return;L.conn=null;failTransfers(c.peer);setLink(c.peer,'offline');if(!c._sup){L.tries=0;schedule(c.peer)}}
+function onConn(c,out){c._out=out;
+ c.peerConnection&&c.peerConnection.addEventListener('iceconnectionstatechange',()=>dbg('ICE '+c.peerConnection.iceConnectionState+(c._out?' (outgoing)':' (incoming)')));
+ c.on('open',()=>{const ct=S.cs.get(c.peer);if(c._pair)c.send({v:1,t:'pair',tok:c._pair,name:S.me.name});else if(c._pubq)c.send({v:1,t:'spub'});else if(ct&&!ct.paused&&!c._hs)sendHello(c)});
+ c.on('data',d=>{c._q=(c._q||Promise.resolve()).then(()=>onData(c,d)).catch(()=>{})});c.on('close',()=>onClose(c));c.on('error',()=>onClose(c));
+ if(!out)setTimeout(()=>{if(!c._ver&&!c._pairing)c.close()},15000)}
+async function sendHello(c){const ct=S.cs.get(c.peer);if(!ct)return;c._hs=1;const n=rnd(10);c.send({v:1,t:'hello',n,p:await mac(ct.key,[S.me.id,c.peer,n].join('|'))})}
+/* ---------- protocol ---------- */
+async function onData(c,d){
+ if(!d||typeof d!=='object'||d.v!==1||typeof d.t!=='string')return;
+ const id=c.peer,ct=S.cs.get(id);
+ switch(d.t){
+ case'pair':return onPair(c,d);
+ case'spub':return onPubReq(c);
+ case'spubr':return onPubRes(c,d);
+ case'paired':return onPaired(c,d);
+ case'pok':if(c._pk)return pairDone(c);return;
+ case'pno':toast('Pairing was declined or the invitation is invalid.');c._ver=0;return c.close();
+ case'hello':{
+  if(!ct||ct.paused||typeof d.n!=='string'||typeof d.p!=='string'||d.n.length>32)return c.close();
+  if(d.p!==await mac(ct.key,[id,S.me.id,d.n].join('|'))){toast('Rejected a connection claiming to be '+ct.name+' that failed identity verification.');return c.close()}
+  c._ver=1;if(!c._hs)await sendHello(c);return adopt(c,id)}}
+ if(!ct||lk(id).conn!==c)return;
+ switch(d.t){
+ case'msg':{if(typeof d.id!=='string'||d.id.length>64||typeof d.txt!=='string'||d.txt.length>8000)return;
+  c.send({v:1,t:'ack',id:d.id});const key=id+':'+d.id;if(await dbGet('msgs',key))return;
+  const nm={id:key,chat:id,dir:'in',ts:Date.now(),txt:d.txt,st:'recv'};if(d.re&&typeof d.re.t==='string'&&(d.re.w==='me'||d.re.w==='them'))nm.re={t:d.re.t.slice(0,100),who:d.re.w==='me'?'them':'me'};if(d.fw===1)nm.fw=1;lk(id).typ=0;incoming(nm);return}
+ case'ack':{const m=S.cur===id?S.msgs.find(x=>x.id===d.id):await dbGet('msgs',d.id);if(m&&m.chat===id&&m.dir==='out'&&m.st!=='read')setM(m,{st:'acked'});return}
+ case'stk':{if(typeof d.id!=='string'||d.id.length>64||typeof d.img!=='string'||d.img.length>140000||!/^data:image\/(png|webp|jpeg);base64,[A-Za-z0-9+\/=]+$/.test(d.img))return;c.send({v:1,t:'ack',id:d.id});const key=id+':'+d.id;if(await dbGet('msgs',key))return;lk(id).typ=0;incoming({id:key,chat:id,dir:'in',ts:Date.now(),txt:'',stk:d.img,st:'recv'});return}
+ case'po':return onPo(id,d);
+ case'pol':{if(Array.isArray(d.ids)){S.posts.theirs[id]=(S.posts.theirs[id]||[]).filter(x=>d.ids.includes(x.id));poSave();renderPosts()}return}
+ case'pl':{const p=S.posts.mine.find(x=>x.id===d.id);if(p&&S.prefs.likes&&poAllowed(id)){p.lk=p.lk||{};if(d.on)p.lk[id]=Date.now();else delete p.lk[id];poSave();renderPosts()}return}
+ case'prof':return onProf(id,d);
+ case'typ':if(S.prefs.typ){lk(id).typ=d.on?Date.now():0;renderHead();renderList();setTimeout(()=>{renderHead();renderList()},5200)}return;
+ case'read':return onRead(id,d);
+ case'rx':{const e=typeof d.e==='string'&&d.e.length<=8?d.e:null;if(e===null)return;const m=await loc(id,String(d.id),'in')||await loc(id,String(d.id),'out');if(m&&!m.del)await upd(m,{rx:{...m.rx,them:e||undefined}});return}
+ case'edt':{const m=await loc(id,String(d.id),'in');if(m&&!m.del&&!m.file&&typeof d.txt==='string'&&d.txt.length<=8000)await upd(m,{txt:d.txt,ed:1});return}
+ case'del':{const m=await loc(id,String(d.id),'in');if(m)await tomb(m);return}
+ case'dis':{ct.dis=[0,86400,604800].includes(d.s)?d.s:0;saveC(ct);return}
+ case'st':return onSt(id,d);
+ case'stl':{if(Array.isArray(d.ids)){S.sts.theirs[id]=(S.sts.theirs[id]||[]).filter(x=>d.ids.includes(x.id));stSave();if(S.tab==='status')renderStatus()}return}
+ case'sv':{const x=S.sts.mine.find(y=>y.id===d.id);if(x&&S.prefs.rcpt&&stAllowed(id)){x.vw=Object.assign(x.vw||{},{[id]:Date.now()});stSave()}return}
+ case'fh':return rxStart(c,d);case'fc':return rxChunk(c,d);case'fe':return rxEnd(c,d);
+ case'fx':{const k=id+':'+d.tid,r=S.rx.get(k);if(r){S.rx.delete(k);setM(r.m,{st:'cancelled'})}const x=S.tx.get(d.tid);if(x&&x.m.chat===id){x.cancel=x.dead=1;x.w&&x.w({t:'dead'})}return}
+ case'fok':case'fno':case'fa':{const x=S.tx.get(d.tid);if(x&&x.m.chat===id&&x.w)x.w(d);return}}}
+async function incoming(m){await saveM(m);const ct=S.cs.get(m.chat);if(ct.arch&&!S.prefs.keeparch)ct.arch=false;if(S.cur===m.chat){S.msgs.push(m);appendB(m);if(document.hidden)ct.unread=(ct.unread||0)+1;else sendRead(m.chat)}else ct.unread=(ct.unread||0)+1;touch(ct,m);notify(ct,m);alertIn(ct)}
+function notify(ct,m){if(!S.prefs.notif||ct.mute||dndNow()||(!document.hidden&&S.cur===ct.id)||!navigator.serviceWorker||typeof Notification==='undefined'||Notification.permission!=='granted')return;navigator.serviceWorker.ready.then(r=>r.showNotification(ct.name,{body:S.prefs.npv&&m&&m.txt?m.txt.slice(0,80):'New message',tag:ct.id})).catch(()=>{})}
+function touch(ct,m){ct.last={t:m.file?'📎 '+m.file.name:m.stk?'🏷 Sticker':m.txt.slice(0,80),ts:m.ts};saveC(ct);renderList()}
+async function flush(id){const ms=(await dbChat(id)).filter(m=>m.dir==='out'&&!m.file&&!m.del&&!['acked','read'].includes(m.st)).sort((a,b)=>a.ts-b.ts).slice(-200);for(const m of ms){const x=S.cur===id?S.msgs.find(y=>y.id===m.id)||m:m;sendText(x)}}
+function sendText(m){const c=lk(m.chat).conn;if(!c||!c.open)return;try{const p=m.stk?{v:1,t:'stk',id:m.id,img:m.stk,ts:m.ts}:{v:1,t:'msg',id:m.id,txt:m.txt,ts:m.ts};if(m.re&&!m.stk)p.re={t:m.re.t,w:m.re.who};if(m.fw)p.fw=1;c.send(p);if(m.st==='local'||m.st==='failed')setM(m,{st:'sent'})}catch{setM(m,{st:'failed'})}}
+/* ---------- pairing ---------- */
+function makeInvite(){const tok=rnd(10);S.inv.set(tok,Date.now()+9e5);return 'cly1-'+S.me.id+'-'+tok}
+async function onPair(c,d){
+ const exp=S.inv.get(d.tok);if(typeof d.tok!=='string'||!exp||exp<Date.now()||S.cs.has(c.peer)){c.send({v:1,t:'pno'});return c.close()}
+ c._pairing=1;const key=rnd(32),f=await fp(key),name=String(d.name||'Unknown').slice(0,40);
+ const ok=await modal('New contact request',h('div',{},h('p',{},name+' used your invitation.'),h('p',{},'Security code (must match on their screen):'),h('p',{class:'mono'},f)),[['Decline','no'],['Accept','ok','pri']]);
+ if(ok!=='ok'||!c.open){c.open&&c.send({v:1,t:'pno'});return c.close()}
+ S.inv.delete(d.tok);c._pk=key;c._pname=name;c.send({v:1,t:'paired',key,name:S.me.name})}
+async function onPaired(c,d){
+ if(!c._pair||typeof d.key!=='string'||d.key.length!==32||typeof d.name!=='string')return;
+ c._gotp=1;const name=d.name.slice(0,40),f=await fp(d.key);
+ const ok=await modal('Add '+name+'?',h('div',{},h('p',{},'Confirm that this security code matches the one on '+name+'’s screen:'),h('p',{class:'mono'},f)),[['Cancel','no'],['Codes match','ok','pri']]);
+ if(ok!=='ok'||!c.open){c.open&&c.send({v:1,t:'pno'});return c.close()}
+ await addContact(c.peer,name,d.key);c._ver=1;c._pair=0;c.send({v:1,t:'pok'});adopt(c,c.peer);toast(name+' added.')}
+async function pairDone(c){await addContact(c.peer,c._pname,c._pk);c._ver=1;c._pk=null;adopt(c,c.peer);toast(c._pname+' added.')}
+async function addContact(id,name,key){const ct={id,name,key,paused:false,unread:0,created:Date.now(),dis:S.prefs.defDis||0};S.cs.set(id,ct);await saveC(ct);renderList()}
+function join(code){const m=/^cly1-(cly-[a-z2-7]{20})-([a-z2-7]{10})$/.exec(code.trim().toLowerCase());
+ if(!m)return toast('That invitation code is not valid.');if(m[1]===S.me.id)return toast('That is your own invitation.');
+ if(S.cs.has(m[1])){toast('Already in your contacts.');return kick(m[1],true)}
+ if(!S.peer||!S.peer.open)return toast('Connection service is not online yet.');
+ const c=S.peer.connect(m[1],{reliable:true});c._pair=m[2];onConn(c,true);toast('Contacting inviter…');
+ setTimeout(()=>{if(!c._gotp&&!c._ver){try{c.close()}catch{}toast('No response. The invitation may be expired or the other device is offline or blocked by its network.')}},25000)}
+/* ---------- chat list / header ---------- */
+const initial=n=>(n||'?').trim().slice(0,1).toUpperCase();
+const avEl=(name,av,cls)=>h('div',{class:'av'+(cls?' '+cls:'')},av?h('img',{src:av,alt:''}):initial(name));
+const typingNow=id=>{const L=S.link.get(id);return !!(L&&L.typ&&Date.now()-L.typ<5000)};
+const wid=m=>m.dir==='out'?m.id:m.id.slice(m.chat.length+1);
+const snip=m=>m.del?'Deleted message':m.file?'📎 '+m.file.name:m.stk?'Sticker':(m.txt||'').slice(0,100);
+function renderList(){const q=$('#sq').value.toLowerCase(),f=S.flt;
+ $('#chips').replaceChildren(...[['all','All'],['unread','Unread'],['online','Online'],['arch','Archived']].map(([k,l])=>h('button',{class:'chip'+(f===k?' on':''),onclick:()=>{S.flt=k;renderList()}},l)));
+ const a=[...S.cs.values()].filter(c=>(!q||c.name.toLowerCase().includes(q)||(c.last&&c.last.t.toLowerCase().includes(q)))&&(f==='arch'?c.arch:!c.arch)&&(f!=='unread'||c.unread)&&(f!=='online'||(c.id!=='self'&&lk(c.id).state==='online'))).sort((x,y)=>(x.id==='self'?-1:y.id==='self'?1:(!!y.pin-!!x.pin)||(S.prefs.sort==='unread'?(y.unread||0)-(x.unread||0):S.prefs.sort==='name'?x.name.localeCompare(y.name):0)||(y.last?y.last.ts:0)-(x.last?x.last.ts:0)));document.title=S.prefs.tbadge?((n=>n?'('+n+') ':'')([...S.cs.values()].reduce((a,c)=>a+(c.unread||0),0))+'Connectly'):'Connectly';
+ $('#cl').replaceChildren(...a.map(c=>{const st=c.id==='self'?'':lk(c.id).state;return h('button',{class:'ci'+(S.cur===c.id?' sel':''),onclick:()=>openChat(c.id)},
+  h('div',{class:'av'},c.av?h('img',{src:c.av,alt:''}):initial(c.name),c.id==='self'?null:h('i',{class:st,title:STT[st]})),
+  h('div',{class:'cm'},h('b',{},(c.pin?'📌 ':'')+c.name+(c.mute?' 🔇':'')),h('span',{},typingNow(c.id)?'typing…':c.last?(S.prefs.hidep?'Message':c.last.t):(c.id==='self'?'Notes saved in this browser':STT[st]))),
+  h('div',{},h('div',{class:'ct'},c.last?fmtT(c.last.ts):''),c.unread?h('span',{class:'bg'},c.unread):null))}));
+ if(a.length<=1&&!q&&f==='all')$('#cl').append(h('div',{class:'empty'},'No contacts yet. Tap + to create an invitation or enter one. You only pair once.'))}
+function renderHead(){const ct=S.cs.get(S.cur);if(!ct)return;const L=lk(ct.id),self=ct.id==='self';
+ $('#cn').textContent=ct.name;$('#cav').replaceChildren(ct.av?h('img',{src:ct.av,alt:''}):initial(ct.name));
+ $('#cst').textContent=self?'Local notes · not synced':typingNow(ct.id)?'typing…':(ct.blocked?'Blocked':ct.paused?'Disconnected by you':STT[L.state]+(L.state==='reconnecting'?' (attempt '+L.tries+')':''));
+ $('#rcb').style.display=self||L.state==='online'?'none':''}
+async function openChat(id){S.cur=id;S.q='';$('#cs').value='';revoke();S.reply=S.edit=null;showRb();purge();const ct=S.cs.get(id);ct.unread=0;saveC(ct);
+ S.msgs=(await dbChat(id)).sort((a,b)=>a.ts-b.ts);
+ for(const m of S.msgs)if(m.file&&['sending','receiving','queued','ask'].includes(m.st)&&!S.tx.has(m.id)&&!S.rx.has(m.id)){m.st='failed';m.err='Interrupted';saveM(m)}
+ $('#chat').classList.add('has');$('#v-chats').classList.add('open');renderHead();renderMsgs();renderList();$('#inp').focus({preventScroll:true});syncNav();sendRead(id)}
+function renderMsgs(){const q=S.q.toLowerCase(),a=S.msgs.filter(m=>!q||(m.txt||'').toLowerCase().includes(q)||(m.file&&m.file.name.toLowerCase().includes(q)));
+ const box=$('#msgs'),nodes=[];let pd='';for(const m of a){const dk=new Date(m.ts).toDateString();if(dk!==pd){pd=dk;nodes.push(dsep(m.ts))}nodes.push(bubble(m))}box.replaceChildren(...nodes);
+ if(!a.length)box.append(h('div',{class:'empty'},q?'No matching messages.':S.cur==='self'?'Write notes here. They stay in this browser only and do not sync to your other devices.':'No messages yet. Messages are stored on this device and sent only while the contact is online.'));
+ box.scrollTop=box.scrollHeight}
+function appendB(m){const b=$('#msgs');b.querySelector('.empty')?.remove();const pv=S.msgs[S.msgs.length-2];if(!pv||new Date(pv.ts).toDateString()!==new Date(m.ts).toDateString())b.append(dsep(m.ts));b.append(bubble(m));if(S.prefs.asc)b.scrollTop=b.scrollHeight}
+const STM={local:'Saved locally · not sent',sent:'Sent · not yet confirmed',acked:'Confirmed by recipient',failed:'Failed to send',read:'Read',recv:''};
+function bubble(m){const out=m.dir==='out',b=h('div',{class:'m '+(out?'out':'in')+(m.rx&&(m.rx.me||m.rx.them)?' hr':''),'data-id':m.id,tabindex:0,ondblclick:()=>{const e=S.prefs.dbl;if(e&&!m.del&&m.chat!=='self')react(m,e)}});
+ if(m.del)b.append(h('div',{class:'del'},'🚫 This message was deleted'));else if(m.re)b.append(h('div',{class:'q'},h('b',{},m.re.who==='me'?'You':((S.cs.get(m.chat)||{}).name||'Contact')),h('span',{},m.re.t)));
+ if(m.fw&&!m.del)b.append(h('div',{class:'fw'},'↪ Forwarded'));
+ if(m.del){}else if(m.file){const f=m.file,run=['sending','receiving','queued'].includes(m.st),box=h('div',{class:'file'},h('div',{class:'fn'},'📎 '+f.name),h('div',{class:'fs'},fmtB(f.size)+(f.type?' · '+f.type:'')));
+  if(m.st==='ask'){box.append(h('div',{class:'fs'},'Wants to send you this file'),h('div',{class:'row'},h('button',{class:'btn pri',onclick:()=>acceptF(m,true)},'Accept'),h('button',{class:'btn',onclick:()=>acceptF(m,false)},'Decline')))}else if(run){const pc=f.size?Math.min(100,Math.round((m.prog||0)/f.size*100)):0;box.append(h('div',{class:'bar'},h('i',{style:'width:'+pc+'%'})),h('div',{class:'fs'},m.st==='queued'?'Queued':(m.st==='sending'?'Sending ':'Receiving ')+pc+'%'+(m.speed?' · '+fmtB(Math.round(m.speed))+'/s':'')),h('button',{class:'lnk',onclick:()=>cancelF(m)},'Cancel'))}
+  else if(m.st==='done'){box.append(h('div',{class:'fs'},out?'Receipt confirmed by recipient':'Received'),h('button',{class:'lnk',onclick:()=>dl(m)},'Download'));
+   if(S.prefs.imgp&&IMG.includes(f.type)&&f.size<2e7){const img=h('img',{class:'pv',alt:f.name});if(S.prefs.blur){img.style.filter='blur(16px)';img.title='Tap to reveal';img.onclick=()=>{img.style.filter=''}}getBlob(m).then(bl=>{if(bl&&b.isConnected)img.src=urlOf(m.id,bl)});box.append(img)}if(AUD.includes(f.type)){const au=h('audio',{controls:true,preload:'none'});getBlob(m).then(bl=>{if(bl&&b.isConnected)au.src=urlOf(m.id,bl)});box.append(au)}}
+  else box.append(h('div',{class:'fs err'},m.st==='cancelled'?'Cancelled':'Failed'+(m.err?': '+m.err:'')));
+  b.append(box)}else if(m.stk){b.append(h('img',{class:'stk',src:m.stk,alt:'Sticker'}));b.classList.add('nb')}else b.append(h('div',{class:'tx'+(S.prefs.big&&EMO.test((m.txt||'').trim())?' big':'')},linkify(m.txt)));
+ const rx=m.rx?[m.rx.me,m.rx.them].filter(Boolean).join(''):'';if(rx)b.append(h('span',{class:'rc'},rx));b.append(h('div',{class:'mt'+(m.st==='failed'?' er':'')},m.star?h('span',{class:'star'},'★'):null,m.ed&&!m.del?h('span',{class:'ed'},'edited'):null,S.prefs.ts?fmtT(m.ts):'',out&&!m.file&&!m.del&&S.cur!=='self'?STM[m.st]:'',h('button',{class:'mb','aria-label':'Message actions',onclick:()=>msgMenu(m)},'⋮')));return b}
+function refresh(m){if(S.cur!==m.chat)return;const e=$('#msgs').querySelector('[data-id="'+CSS.escape(m.id)+'"]');if(e)e.replaceWith(bubble(m))}
+async function setM(m,p){Object.assign(m,p);if(p.st)await saveM(m);if(p.st&&m.file&&['done','failed','cancelled'].includes(p.st))safe(dbPut('kv',S.stat,'stat'));refresh(m);if(p.st&&m.file)touch(S.cs.get(m.chat),m)}
+const delMe=async m=>{await dbDel('msgs',m.id);if(m.file)await dbDel('blobs',m.id).catch(()=>{});S.mem.delete(m.id);S.msgs=S.msgs.filter(x=>x!==m);renderMsgs()};
+async function msgMenu(m){const out=m.dir==='out',c=lk(m.chat).conn,on=!!(c&&c.open),self=m.chat==='self';
+ if(m.del){if(await confirmM('Deleted message','Remove this placeholder from your device?','Delete',1))delMe(m);return}
+ const b=[['Close','no']];if(!self)['👍','❤️','😂','😮','😢','🙏'].forEach(e=>b.push([e,'r:'+e]));
+ b.push(['Reply','rp']);if(m.txt)b.push(['Copy','cp']);b.push([m.star?'Unstar':'Star','st']);if(m.txt)b.push(['Forward','fw']);
+ if(out&&!m.file&&!m.stk&&(self||m.st==='local'||on))b.push(['Edit','ed']);
+ b.push(['Delete for me','dm','danger']);if(out&&!self&&on)b.push(['Delete for everyone','de','danger']);
+ const v=await modal('Message',h('p',{},'Choose an action.'),b);if(!v||v==='no')return;
+ if(v.startsWith('r:'))return react(m,v.slice(2));
+ if(v==='rp'){S.reply=m;S.edit=null;showRb();$('#inp').focus()}
+ if(v==='cp'){try{await navigator.clipboard.writeText(m.txt);toast('Copied')}catch{toast('Copy failed')}}
+ if(v==='st')upd(m,{star:!m.star});
+ if(v==='fw'){const ids=await pick('Forward to…');for(const t of ids)await sendTo(t,m.txt,1);if(ids.length)toast('Forwarded to '+ids.length+' chat(s).')}
+ if(v==='ed'){S.edit=m;S.reply=null;$('#inp').value=m.txt;autosize();showRb();$('#inp').focus()}
+ if(v==='dm'&&await confirmM('Delete message?','This removes it from this device only.','Delete',1))delMe(m);
+ if(v==='de'&&await confirmM('Delete for everyone?','It is replaced by "This message was deleted" on both devices. Works only while the contact is online.','Delete',1)){const cc=lk(m.chat).conn;if(cc&&cc.open)cc.send({v:1,t:'del',id:wid(m)});await tomb(m)}}
+async function upd(m,p){Object.assign(m,p);await saveM(m);refresh(m)}
+async function tomb(m){if(m.file){await dbDel('blobs',m.id).catch(()=>{});S.mem.delete(m.id)}await upd(m,{txt:'',del:1,file:null,re:null,rx:null,star:false})}
+async function loc(peer,mid,dir){const key=dir==='out'?mid:peer+':'+mid;const m=S.cur===peer?S.msgs.find(x=>x.id===key):await dbGet('msgs',key);return m&&m.chat===peer&&m.dir===dir?m:null}
+async function react(m,e){const ne=(m.rx||{}).me===e?'':e;await upd(m,{rx:{...m.rx,me:ne||undefined}});const c=lk(m.chat).conn;if(m.chat!=='self'&&c&&c.open)c.send({v:1,t:'rx',id:wid(m),e:ne})}
+function showRb(){const r=$('#rb'),m=S.reply||S.edit;if(!m){r.style.display='none';return}
+ r.style.display='flex';r.replaceChildren(h('div',{class:'q'},h('b',{},S.edit?'Editing message':'Replying to '+(m.dir==='out'?'yourself':(S.cs.get(m.chat)||{}).name)),h('span',{},snip(m))),h('button',{class:'ib','aria-label':'Cancel',onclick:()=>{if(S.edit){$('#inp').value='';autosize()}S.reply=S.edit=null;showRb()}},'✕'))}
+/* ---------- sending ---------- */
+async function sendMsg(){const t=$('#inp').value.trim();if(!t||!S.cur)return;if(t.length>8000)return toast('Message too long (8000 characters max).');
+ $('#inp').value='';autosize();$('#em').style.display='none';
+ if(S.edit){const m=S.edit,c=lk(m.chat).conn;S.edit=null;showRb();if(m.chat!=='self'&&m.st!=='local'&&c&&c.open)c.send({v:1,t:'edt',id:wid(m),txt:t});await upd(m,{txt:t,ed:1});return}
+ const m={id:rnd(16),chat:S.cur,dir:'out',ts:Date.now(),txt:t,st:S.cur==='self'?'note':'local'};
+ if(S.reply){m.re={t:snip(S.reply).slice(0,100),who:S.reply.dir==='out'?'me':'them'};S.reply=null;showRb()}
+ S.msgs.push(m);await saveM(m);appendB(m);touch(S.cs.get(S.cur),m);if(S.cur!=='self')sendText(m)}
+function autosize(){const i=$('#inp');i.style.height='auto';i.style.height=Math.min(120,i.scrollHeight)+'px'}
+/* ---------- file transfer ---------- */
+const wait=(x,ms)=>new Promise(r=>{const t=setTimeout(()=>{x.w=null;r(null)},ms);x.w=d=>{clearTimeout(t);x.w=null;r(d)}});
+async function queueFiles(files,noAsk){const id=S.cur,L=lk(id);if(id==='self')return toast('My Devices is a local notes chat. Pair a contact to transfer files.');
+ if(!L.conn||!L.conn.open)return toast('Contact is offline. Files can only be sent while connected.');
+ if(S.prefs.cfm&&!noAsk&&!await confirmM('Send '+files.length+' file(s)?',files.map(f=>f.name).join(', ').slice(0,200),'Send'))return;
+ for(const f of files){if(f.size>S.prefs.maxMB*1048576){toast(f.name+' is larger than your '+S.prefs.maxMB+' MB limit (Settings).');continue}
+  if(S.outq.length>=20){toast('Transfer queue is full (20).');break}
+  const m={id:rnd(16),chat:id,dir:'out',ts:Date.now(),file:{name:f.name.slice(0,120),type:(f.type||'application/octet-stream').slice(0,100),size:f.size},st:'queued',prog:0};
+  if(S.prefs.keep)await safe(dbPut('blobs',f,m.id));else S.mem.set(m.id,f);
+  S.msgs.push(m);await saveM(m);appendB(m);touch(S.cs.get(id),m);S.outq.push({m,f})}
+ pump()}
+async function pump(){if(S.busy)return;S.busy=true;while(S.outq.length)await sendOne(S.outq.shift());S.busy=false}
+async function sendOne({m,f}){const c=lk(m.chat).conn,x={m,w:null,dead:0,cancel:0},end=(st,err)=>{S.tx.delete(m.id);return setM(m,{st,err})};
+ if(m.st==='cancelled')return;S.tx.set(m.id,x);
+ if(!c||!c.open)return end('failed','Not connected');
+ try{await setM(m,{st:'sending'});const p=wait(x,120000);c.send({v:1,t:'fh',tid:m.id,name:m.file.name,type:m.file.type,size:f.size});
+  const r=await p;if(!r||r.t==='dead')return end(x.cancel?'cancelled':'failed',x.cancel?'':'No response from recipient');
+  if(r.t==='fno')return end('failed',String(r.r||'Declined').slice(0,100));
+  const t0=Date.now();let off=0,seq=0,last=0;
+  while(off<f.size){if(x.dead||!c.open)return end(x.cancel?'cancelled':'failed',x.cancel?'':'Connection lost. Transfers cannot be resumed.');
+   while(c.dataChannel&&c.dataChannel.bufferedAmount>1048576&&c.open&&!x.dead)await sleep(25);
+   if(x.dead||!c.open)continue;
+   const buf=await f.slice(off,off+CH).arrayBuffer();c.send({v:1,t:'fc',tid:m.id,s:seq++,d:buf});off+=buf.byteLength;S.stat.tx+=buf.byteLength;
+   const n=Date.now();if(n-last>120){last=n;m.prog=off;m.speed=off/Math.max(.001,(n-t0)/1000);refresh(m)}}
+  const p2=wait(x,60000);c.send({v:1,t:'fe',tid:m.id,n:seq,size:f.size});const a=await p2;
+  return a&&a.t==='fa'&&a.ok?(m.prog=f.size,end('done')):end(x.cancel?'cancelled':'failed',x.cancel?'':'Recipient did not confirm receipt')}
+ catch{return end('failed','Send error')}}
+const cleanName=n=>String(n).replace(/[\\\/:*?"<>|\u0000-\u001f]/g,'_').slice(0,120)||'file';
+function rxStart(c,d){const id=c.peer;if(typeof d.tid!=='string'||d.tid.length>64||typeof d.name!=='string'||!Number.isFinite(d.size)||d.size<0)return;
+ const no=r=>c.send({v:1,t:'fno',tid:d.tid,r});
+ if(d.size>S.prefs.maxMB*1048576)return no('File exceeds recipient limit of '+S.prefs.maxMB+' MB');
+ if(S.rx.size>=3)return no('Recipient is busy');
+ const m={id:id+':'+d.tid,chat:id,dir:'in',ts:Date.now(),file:{name:cleanName(d.name),type:typeof d.type==='string'?d.type.slice(0,100):'',size:d.size},st:S.prefs.ask?'ask':'receiving',prog:0};
+ S.rx.set(m.id,{m,tid:d.tid,chunks:[],got:0,seq:0,t0:Date.now(),last:0});incoming(m);if(!S.prefs.ask)c.send({v:1,t:'fok',tid:d.tid})}
+function rxChunk(c,d){const r=S.rx.get(c.peer+':'+d.tid);if(!r||r.m.st==='ask')return;let b=d.d;if(ArrayBuffer.isView(b))b=b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength);
+ if(!(b instanceof ArrayBuffer)||d.s!==r.seq||r.got+b.byteLength>r.m.file.size){S.rx.delete(r.m.id);setM(r.m,{st:'failed',err:'Invalid data received'});c.send({v:1,t:'fx',tid:d.tid});return}
+ r.chunks.push(b);r.got+=b.byteLength;r.seq++;S.stat.rx+=b.byteLength;const n=Date.now();if(n-r.last>120){r.last=n;r.m.prog=r.got;r.m.speed=r.got/Math.max(.001,(n-r.t0)/1000);refresh(r.m)}}
+async function rxEnd(c,d){const r=S.rx.get(c.peer+':'+d.tid);if(!r)return;S.rx.delete(r.m.id);const m=r.m;
+ if(r.got!==m.file.size||d.n!==r.seq){await setM(m,{st:'failed',err:'Incomplete file'});return c.send({v:1,t:'fa',tid:d.tid,ok:false})}
+ const blob=new Blob(r.chunks,{type:IMG.includes(m.file.type)||AUD.includes(m.file.type)?m.file.type:'application/octet-stream'});m.prog=m.file.size;
+ if(!(S.prefs.keep&&(await safe(dbPut('blobs',blob,m.id)))!==null))S.mem.set(m.id,blob);
+ await setM(m,{st:'done'});c.send({v:1,t:'fa',tid:d.tid,ok:true})}
+function failTransfers(id){for(const x of S.tx.values())if(x.m.chat===id){x.dead=1;x.w&&x.w({t:'dead'})}
+ for(const [k,r] of S.rx)if(r.m.chat===id){S.rx.delete(k);setM(r.m,{st:'failed',err:'Connection lost. Transfers cannot be resumed.'})}}
+function cancelF(m){const c=lk(m.chat).conn;
+ if(m.dir==='in'){const r=S.rx.get(m.id);S.rx.delete(m.id);c&&c.open&&c.send({v:1,t:'fx',tid:m.id.slice(m.chat.length+1)});setM(m,{st:'cancelled'})}
+ else{const x=S.tx.get(m.id);if(x){x.cancel=x.dead=1;c&&c.open&&c.send({v:1,t:'fx',tid:m.id});x.w&&x.w({t:'dead'})}else{S.outq=S.outq.filter(q=>q.m!==m);setM(m,{st:'cancelled'})}}}
+async function dl(m){const b=await getBlob(m);if(!b)return toast('This file was not kept on this device.');const u=URL.createObjectURL(b),a=h('a',{href:u,download:m.file.name});document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),6e4)}
+/* ---------- contact actions ---------- */
+async function contactMenu(id){const ct=S.cs.get(id);if(!ct||id==='self')return;
+ const body=h('div',{},h('div',{class:'row'},avEl(ct.name,ct.av),h('div',{class:'grow'},h('b',{},ct.name),h('p',{},ct.about||'No about'))),h('p',{},'Device ID:'),h('p',{class:'mono'},id),h('p',{},'Disappearing messages: '+(ct.dis?(ct.dis===86400?'24 hours':'7 days'):'off')));
+ const v=await modal(ct.name,body,[['Close','no'],['Rename','rn'],[ct.pin?'Unpin':'Pin','pin'],[ct.mute?'Unmute':'Mute','mu'],[ct.arch?'Unarchive':'Archive','ar'],[ct.smute?'Show status':'Mute status','sm'],['Disappearing','di'],['Starred','sr'],['Export chat','ex'],['Clear chat','cl'],...(ct.blocked?[]:[[ct.paused?'Resume connection':'Disconnect','pz']]),[ct.blocked?'Unblock':'Block','bk'],['Remove','rm','danger']]);
+ if(['pin','mu','ar','sm'].includes(v)){const k={pin:'pin',mu:'mute',ar:'arch',sm:'smute'}[v];ct[k]=!ct[k];saveC(ct);renderList();if(S.tab==='status')renderStatus()}
+ if(v==='sr')showStarred(id);
+ if(v==='ex'){const ms=(await dbChat(id)).sort((a,b)=>a.ts-b.ts);dlText(ms.map(m=>'['+new Date(m.ts).toLocaleString()+'] '+(m.dir==='out'?S.me.name:ct.name)+': '+(m.del?'(deleted)':m.file?'[file] '+m.file.name+' ('+fmtB(m.file.size)+')':m.txt)).join('\n'),'connectly-chat-'+ct.name.replace(/[^\w-]+/g,'_')+'.txt')}
+ if(v==='di'){const w=await modal('Disappearing messages',h('p',{},'Messages older than this are deleted from this device, and from the contact’s device while you are connected. Starred messages are kept.'),[['Off','d0'],['24 hours','d1'],['7 days','d7']]);
+  if(w){ct.dis={d0:0,d1:86400,d7:604800}[w];saveC(ct);const c=lk(id).conn;if(c&&c.open)c.send({v:1,t:'dis',s:ct.dis});purge()}}
+ if(v==='cl'&&await confirmM('Clear chat?','All messages with '+ct.name+' are deleted from this device.','Clear',1)){await delChat(id);ct.last=null;ct.unread=0;saveC(ct);if(S.cur===id){S.msgs=[];renderMsgs()}renderList()}
+ if(v==='bk'){ct.blocked=!ct.blocked;ct.paused=ct.blocked;saveC(ct);const L=lk(id);clearTimeout(L.timer);if(ct.blocked){if(L.conn){L.conn._sup=1;L.conn.close();L.conn=null}setLink(id,'offline')}else kick(id,true,true);renderList();renderHead();if(S.view==='set')renderSet()}
+ if(v==='rn'){const n=await ask('Rename contact','Name',ct.name);if(n){ct.name=n;ct.nick=1;saveC(ct);renderList();if(S.cur===id)renderHead();if(S.view==='set')renderSet()}}
+ if(v==='pz'){ct.paused=!ct.paused;saveC(ct);const L=lk(id);if(ct.paused){clearTimeout(L.timer);if(L.conn){L.conn._sup=1;L.conn.close();L.conn=null}setLink(id,'offline')}else kick(id,true,true);renderHead();if(S.view==='set')renderSet()}
+ if(v==='rm'&&await confirmM('Remove '+ct.name+'?','The contact and all messages with them will be deleted from this device. You would need to pair again to chat.','Remove',1)){
+  const L=lk(id);clearTimeout(L.timer);if(L.conn){L.conn._sup=1;L.conn.close()}S.link.delete(id);await delChat(id);await dbDel('contacts',id);S.cs.delete(id);delete S.sts.theirs[id];stSave();delete S.posts.theirs[id];poSave();
+  if(S.cur===id){S.cur=null;$('#chat').classList.remove('has');$('#v-chats').classList.remove('open');syncNav()}renderList();if(S.view==='set')renderSet()}}
+async function addDialog(){const out=h('div',{}),inp=h('input',{placeholder:'Paste invitation code','aria-label':'Invitation code'});
+ const mk=h('button',{class:'btn',onclick:()=>{if(S.sig!=='online')return toast('Connection service is not online yet.');const code=makeInvite();out.replaceChildren(h('p',{},'Send this code to the other person. It works once and expires in 15 minutes. Keep Connectly open until they join.'),h('p',{class:'mono'},code),h('div',{class:'row'},h('button',{class:'btn',onclick:()=>navigator.clipboard.writeText(code).then(()=>toast('Copied'),()=>toast('Copy failed'))},'Copy'),navigator.share?h('button',{class:'btn',onclick:()=>navigator.share({text:code}).catch(()=>{})},'Share'):null))}},'Create invitation');
+ const body=h('div',{},h('p',{},'Pair once. After that, Connectly reconnects automatically.'),mk,out,h('p',{},'Or enter an invitation you received:'),inp);
+ const v=await modal('Add contact',body,[['Close','no'],['Join','go','pri']]);if(v==='go'&&inp.value.trim())join(inp.value)}
+/* ---------- settings ---------- */
+async function renderSet(){const v=$('#v-set'),est=navigator.storage&&navigator.storage.estimate?await navigator.storage.estimate().catch(()=>null):null;
+ const sec=(t,...c)=>h('div',{class:'card'},h('h2',{},t),...c),det=(t,x)=>h('details',{},h('summary',{},t),h('p',{},x));
+ v.replaceChildren(
+ sec('Profile',h('div',{class:'row'},avEl(S.me.name,S.me.av),h('div',{class:'grow'},h('b',{},S.me.name),h('p',{},S.me.about||'Hey there! I am using Connectly.'))),h('p',{class:'mono'},'Device ID: '+S.me.id),
+  h('div',{class:'row'},h('button',{class:'btn',onclick:()=>$('#pf').click()},'Change photo'),S.me.av?h('button',{class:'btn',onclick:()=>saveProf({av:''})},'Remove photo'):null,h('button',{class:'btn',onclick:async()=>{const n=await ask('Your name','Name',S.me.name);if(n)saveProf({name:n})}},'Name'),h('button',{class:'btn',onclick:async()=>{const n=await ask('About','About',S.me.about||'');if(n!==null)saveProf({about:n.slice(0,140)})}},'About')),
+  h('input',{id:'pf',type:'file',accept:'image/*',hidden:true,onchange:async e=>{const f=e.target.files[0];if(!f)return;const a=await shrink(f,256,.7,60000);if(a)saveProf({av:a});else toast('Could not use that image.')}}),h('p',{},'Your name, about and photo are sent to contacts when you are connected.')),
+ sec('Appearance',h('p',{},'Theme'),h('select',{'aria-label':'Theme',onchange:e=>{S.prefs.theme=e.target.value;savePrefs();theme()}},['system','light','dark'].map(t=>h('option',{value:t,selected:S.prefs.theme===t},t[0].toUpperCase()+t.slice(1)))),h('p',{},'Accent colour'),h('div',{class:'sw'},AC.map(([k,c])=>h('button',{class:S.prefs.ac===k?'on':'',style:'background:'+c,'aria-label':k,onclick:()=>{S.prefs.ac=k;savePrefs();theme();renderSet()}}))),...sel('Text size','fs',[['s','Small'],['m','Medium'],['l','Large']]),...sel('Chat wallpaper','wp',[['dots','Dots'],['lines','Lines'],['tint','Accent tint'],['none','Plain']])),
+ sec('Chats',tg('Enter key sends the message (Shift+Enter adds a new line)','enter'),...sel('Disappearing messages for new contacts','defDis',[[0,'Off'],[86400,'24 hours'],[604800,'7 days']]),
+  h('div',{class:'row'},h('button',{class:'btn',onclick:()=>showStarred(null)},'Starred messages'),h('button',{class:'btn',onclick:searchAll},'Search all messages'),h('button',{class:'btn',onclick:broadcast},'New broadcast'),h('button',{class:'btn',onclick:()=>{S.cs.forEach(c=>{c.unread=0;saveC(c)});renderList();toast('All chats marked as read.')}},'Mark all as read'),h('button',{class:'btn danger',onclick:clearMedia},'Clear downloaded media')),
+  h('p',{},'Reply, react, edit, star, forward and delete from the ⋮ menu on any message. Pin, mute, archive, export and disappearing messages are in the chat’s ⋮ menu.')),
+ sec('Chat display',...sel('Bubble style','bub',[['round','Rounded'],['classic','Classic'],['flat','Flat outlined']]),...sel('Density','dens',[['cozy','Comfortable'],['compact','Compact']]),...sel('Double-tap a message to react','dbl',[['','Off'],['👍','👍'],['❤️','❤️'],['😂','😂']]),tg('24-hour clock','h24'),tg('Show message times','ts'),tg('Make links clickable','links'),tg('Show image previews in chats','imgp'),tg('Reduce animations','rm')),
+ sec('Notifications',tg('Message notifications','notif',async on=>{if(!on)return;if(typeof Notification==='undefined'||!navigator.serviceWorker){S.prefs.notif=false;savePrefs();toast('Notifications are not supported here.');return renderSet()}if(Notification.permission==='default')await Notification.requestPermission();if(Notification.permission!=='granted'){S.prefs.notif=false;savePrefs();toast('Notifications are blocked in browser settings.');renderSet()}}),tg('Message sound','snd'),tg('Vibrate on new message','vib'),tg('Do not disturb schedule (silences alerts)','dnd'),
+  h('div',{class:'row'},h('label',{},'From ',h('input',{type:'time',style:'width:130px',value:S.prefs.dndF,onchange:e=>{S.prefs.dndF=e.target.value||'22:00';savePrefs()}})),h('label',{},'To ',h('input',{type:'time',style:'width:130px',value:S.prefs.dndT,onchange:e=>{S.prefs.dndT=e.target.value||'07:00';savePrefs()}}))),
+  h('p',{},'There is no push service. Alerts appear only while Connectly is still running; messages cannot reach a closed app. Alerts never include message text. Muted chats stay silent.')),
+ sec('Status',h('p',{},'Who can see my status: '+stWho()),...sel('Status lasts','stHrs',[[6,'6 hours'],[12,'12 hours'],[24,'24 hours']]),...sel('Viewer auto-advance','stSpd',[[3,'3 seconds'],[6,'6 seconds'],[10,'10 seconds']]),
+  h('div',{class:'row'},h('button',{class:'btn',onclick:stSettings},'Status privacy'),h('button',{class:'btn',onclick:publicDialog},'🌐 Public status'),h('button',{class:'btn',onclick:addStatus},'New status'),h('button',{class:'btn danger',onclick:async()=>{if(await confirmM('Delete all my statuses?','They are removed here and from contacts who are online now.','Delete',1)){S.sts.mine=[];stSave();S.cs.forEach(c=>c.id!=='self'&&stSendTo(c.id));toast('Statuses deleted.')}}},'Delete all')),
+  h('p',{},'Statuses travel peer-to-peer: a contact receives one only while you are both online. Public statuses can be opened by anyone with your public status link while your app is online. Mute a contact’s status from their ⋮ menu.')),
+ sec('Privacy and security',tg('Share my profile photo','showAv',()=>S.cs.forEach(c=>sendProf(c.id))),tg('Read receipts (also status views, both directions)','rcpt'),tg('Typing indicator','typ'),tg('Hide message previews in the chat list','hidep'),tg('Ask before receiving files','ask'),
+  h('p',{},'App lock: '+(S.lock?'PIN set':'off')),h('div',{class:'row'},h('button',{class:'btn',onclick:setPin},S.lock?'Change PIN':'Set PIN'),S.lock?h('button',{class:'btn',onclick:rmPin},'Remove PIN'):null,S.lock?h('button',{class:'btn',onclick:showLock},'Lock now'):null),
+  ...(S.lock?sel('Auto-lock after leaving the app','lockMin',[[0,'Immediately'],[1,'1 minute'],[5,'5 minutes'],[30,'30 minutes']]):[]),
+  h('p',{},'The PIN only hides the screen. Messages and files in this browser’s storage are not encrypted, and incoming connections still work while locked.')),
+ sec('Lists and display',tg('Show avatars in the chat list','avs',()=>{theme();renderList()}),...sel('Sort chats by','sort',[['recent','Most recent'],['unread','Unread first'],['name','Name']]),tg('Keep archived chats archived when new messages arrive','keeparch'),tg('Show date separators','dsp',()=>S.cur&&renderMsgs()),tg('Scroll to new messages automatically','asc'),tg('Large emoji for emoji-only messages','big',()=>S.cur&&renderMsgs()),tg('Show unread count in the page title','tbadge',renderList),...sel('Sticker size','stkSz',[['s','Small'],['m','Medium'],['l','Large']])),
+ sec('Media and voice',tg('Blur images until tapped','blur',()=>S.cur&&renderMsgs()),tg('Ask before sending files','cfm'),tg('Data saver (smaller status, post and sticker images)','saver'),tg('Voice notes','vn'),...sel('Longest voice note','vnMax',[[30,'30 seconds'],[120,'2 minutes'],[300,'5 minutes']]),tg('Show message text in notifications','npv'),h('div',{class:'row'},h('button',{class:'btn',onclick:async()=>{if(await confirmM('Clear stickers?','Removes all stickers from your library.','Clear',1)){S.stk=[];await safe(dbPut('kv',[],'stk'));toast('Stickers cleared.')}}},'Clear my stickers'),h('button',{class:'btn',onclick:async()=>{if(await confirmM('Clear GIFs?','Removes all GIFs from your library.','Clear',1)){for(const g of (S.gifs||(await dbGet('kv','gifs'))||[]))await dbDel('blobs','gif:'+g.id).catch(()=>{});S.gifs=[];await safe(dbPut('kv',[],'gifs'));toast('GIFs cleared.')}}},'Clear my GIFs'))),
+ sec('Posts',h('p',{},'Who can see my posts: '+({all:'Everyone (all my contacts)',except:'All contacts except '+(S.prefs.poList||[]).length,only:'Only '+(S.prefs.poList||[]).length+' selected'})[S.prefs.poMode]),h('div',{class:'row'},h('button',{class:'btn',onclick:()=>audSettings('po','Posts privacy')},'Posts privacy'),h('button',{class:'btn',onclick:addPost},'New post')),tg('Allow likes on my posts','likes'),h('p',{},'Posts stay until you delete them. They reach a contact only while you are both online, and re-sync at each reconnect.')),
+ sec('Screen privacy',tg('Blur the screen while the app is in the background','hidesw')),
+ sec('Blocked contacts',...[...S.cs.values()].filter(c=>c.blocked).map(c=>h('div',{class:'row'},h('span',{class:'grow'},c.name),h('button',{class:'btn',onclick:()=>contactMenu(c.id)},'Manage'))),![...S.cs.values()].some(c=>c.blocked)?h('p',{},'No blocked contacts. Block someone from their ⋮ menu in a chat.'):null),
+ sec('Connection service',h('p',{},'PeerJS Cloud (0.peerjs.com) – status: '+SIGT[S.sig]+(S.sigNote?' – '+S.sigNote:'')),h('button',{class:'btn',onclick:()=>{S.sigTries=0;clearTimeout(S.sigTimer);S.sigTimer=0;startPeer()}},'Restart connection'),h('button',{class:'btn',onclick:()=>navigator.clipboard.writeText(S.dbg.join('\n')).then(()=>toast('Copied'),()=>toast('Copy failed'))},'Copy diagnostics'),h('p',{},'Diagnostics:'),h('pre',{id:'dbg',class:'mono',style:'white-space:pre-wrap;max-height:160px;overflow:auto'},S.dbg.join('\n'))),
+ sec('Relay (TURN, optional)',h('p',{},'Needed when your phone and PC are on different or restricted networks. Use your own TURN server; the credential stays on this device (and in backups).'),h('textarea',{rows:4,placeholder:'One or more TURN URLs, separated by spaces, commas or new lines','aria-label':'TURN URLs',style:'margin-bottom:6px',onchange:e=>setTurn('url',e.target.value)},(S.prefs.turn||{}).url||''),h('input',{placeholder:'Username','aria-label':'TURN username',value:(S.prefs.turn||{}).user||'',onchange:e=>setTurn('user',e.target.value)}),h('input',{placeholder:'Credential',type:'password','aria-label':'TURN credential',value:(S.prefs.turn||{}).cred||'',onchange:e=>setTurn('cred',e.target.value)})),
+ sec('Advanced connection',tg('Reconnect automatically (turn off to save battery)','auto'),...sel('Stop retrying after','maxTry',[[3,'3 attempts'],[6,'6 attempts'],[10,'10 attempts']]),h('p',{},'Custom PeerJS server (leave the host empty for the free PeerJS Cloud). Restart the connection after changing.'),
+  h('input',{placeholder:'Host, e.g. peers.example.com','aria-label':'Server host',value:(S.prefs.sig||{}).host||'',onchange:e=>setSrv('host',e.target.value)}),
+  h('div',{class:'row'},h('input',{placeholder:'Port (443)','aria-label':'Server port',inputmode:'numeric',value:(S.prefs.sig||{}).port||'',style:'width:130px',onchange:e=>setSrv('port',e.target.value)}),h('input',{placeholder:'Path (/)','aria-label':'Server path',value:(S.prefs.sig||{}).path||'',style:'width:160px',onchange:e=>setSrv('path',e.target.value)})),
+  h('label',{class:'row'},h('input',{type:'checkbox',style:'width:auto',checked:(S.prefs.sig||{}).secure!==false,onchange:e=>setSrv('secure',e.target.checked)}),'Use a secure connection (https / wss)')),
+ sec('Pairing',h('p',{},'Tap + in Chats, create an invitation, send the code to the other person and have them join. Both of you confirm a matching security code. This is needed only once per contact.')),
+ sec('Contacts',...[...S.cs.values()].filter(c=>c.id!=='self').map(c=>h('div',{class:'row'},h('span',{class:'grow'},c.name+' · '+(c.paused?'Disconnected by you':STT[lk(c.id).state])),h('button',{class:'btn',onclick:()=>contactMenu(c.id)},'Manage'))),S.cs.size<2?h('p',{},'No contacts yet.'):null),
+ sec('Files',h('div',{class:'row'},h('label',{class:'grow',for:'mx'},'Maximum file size (MB)'),h('input',{id:'mx',type:'number',min:1,max:2000,value:S.prefs.maxMB,style:'width:110px',onchange:e=>{S.prefs.maxMB=Math.max(1,Math.min(2000,+e.target.value||200));savePrefs()}})),
+  h('label',{class:'row'},h('input',{type:'checkbox',style:'width:auto',checked:S.prefs.keep,onchange:e=>{S.prefs.keep=e.target.checked;savePrefs()}}),'Keep sent and received files on this device'),h('p',{},'Received files are held in memory until the transfer completes, so very large limits can exhaust RAM on phones.')),
+ sec('Storage and backup',h('p',{},est?'Used '+fmtB(est.usage||0)+' of about '+fmtB(est.quota||0):'Usage unavailable'),h('p',{},'File data sent '+fmtB(S.stat.tx)+' · received '+fmtB(S.stat.rx)+' (since last reset)'),h('button',{class:'lnk',onclick:()=>{S.stat={tx:0,rx:0};safe(dbPut('kv',S.stat,'stat'));renderSet()}},'Reset counters'),h('p',{},'History lives only in this browser. Clearing browser data deletes it. Backups contain contact secrets; keep them private. Files are not included.'),
+  h('div',{class:'row'},h('button',{class:'btn',onclick:exportB},'Export backup'),h('button',{class:'btn',onclick:()=>$('#imp').click()},'Restore backup'),h('button',{class:'btn danger',onclick:clearHist},'Clear history')),h('input',{id:'imp',type:'file',accept:'application/json',hidden:true,onchange:e=>importB(e.target.files[0])})),
+ sec('Help',det('Troubleshooting','Contact stays offline: the other device must have Connectly open (or running in the background). Public Wi-Fi, school or corporate networks and some mobile carriers block direct peer-to-peer links; those need a TURN relay, which Connectly does not include. Try another network, then press Reconnect. “Device ID already registered” means another tab is open.'),
+  det('Offline messages','Messages are delivered only while both devices are connected. Anything written while the contact is offline stays on your device marked “Saved locally” and is sent automatically when the link returns. There is no server-side mailbox.'),
+  det('Privacy and security','Chats and files travel directly between devices over WebRTC, encrypted in transit (DTLS). The PeerJS signaling service sees device IDs and connection metadata such as IP addresses, not message content. Google’s public STUN server only reveals your public address and relays nothing. This is not a full end-to-end identity system: your protection against impostors is the security code you compared when pairing plus a per-contact secret checked on every reconnect. Leaving to UtiliX closes live connections; they resume when you return.')),
+ sec('About',h('p',{},'Connectly v'+VER+' · Connect. Chat. Share.'),h('p',{},'Powered by ',h('a',{href:UTIL,style:'color:var(--ac)'},'UtiliX'))))}
+const savePrefs=()=>safe(dbPut('kv',S.prefs,'prefs'));
+async function exportB(){const d={app:'connectly',v:1,at:Date.now(),me:S.me,prefs:S.prefs,contacts:[...S.cs.values()],msgs:await dbAll('msgs')},u=URL.createObjectURL(new Blob([JSON.stringify(d)],{type:'application/json'})),a=h('a',{href:u,download:'connectly-backup-'+new Date().toISOString().slice(0,10)+'.json'});document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),6e4)}
+function validB(d){return d&&d.app==='connectly'&&d.v===1&&Array.isArray(d.contacts)&&Array.isArray(d.msgs)&&d.contacts.every(c=>c&&typeof c.id==='string'&&c.id.length<80&&typeof c.name==='string'&&(c.id==='self'||typeof c.key==='string'))&&d.msgs.every(m=>m&&typeof m.id==='string'&&typeof m.chat==='string'&&(m.dir==='in'||m.dir==='out')&&Number.isFinite(m.ts)&&(typeof m.txt==='string'||(m.file&&typeof m.file.name==='string'&&Number.isFinite(m.file.size))))&&(!d.me||/^cly-[a-z2-7]{20}$/.test(d.me.id))}
+async function importB(f){if(!f)return;let d;try{d=JSON.parse(await f.text())}catch{return toast('That file is not valid JSON.')}
+ if(!validB(d))return toast('Not a valid Connectly backup. Nothing was changed.');
+ const cb=h('input',{type:'checkbox',style:'width:auto'});
+ const v=await modal('Restore backup?',h('div',{},h('p',{},d.contacts.length+' contacts and '+d.msgs.length+' messages found. Existing items are kept; only missing ones are added.'),h('label',{class:'row'},cb,'Also restore my device identity (only if the old device is no longer used)')),[['Cancel','no'],['Restore','ok','pri']]);if(v!=='ok')return;
+ let nc=0,nm=0;for(const c of d.contacts)if(!S.cs.has(c.id)){const x={id:c.id,name:c.name.slice(0,40),key:c.key||'',paused:false,unread:0,created:c.created||Date.now(),last:c.last&&typeof c.last.t==='string'?{t:c.last.t.slice(0,80),ts:+c.last.ts||0}:null,local:c.id==='self'||undefined};S.cs.set(x.id,x);await saveC(x);nc++}
+ for(const m of d.msgs){if(!S.cs.has(m.chat)||await dbGet('msgs',m.id))continue;const x={id:m.id,chat:m.chat,dir:m.dir,ts:m.ts};if(m.file){x.file={name:cleanName(m.file.name),type:String(m.file.type||'').slice(0,100),size:m.file.size};x.st=m.st==='done'?'done':'failed';x.err='File content not included in backup'}else{x.txt=String(m.txt).slice(0,8000);if(typeof m.stk==='string'&&/^data:image\/(png|webp|jpeg);base64,/.test(m.stk)&&m.stk.length<140000)x.stk=m.stk;x.st=m.dir==='in'?'recv':m.chat==='self'?'note':m.st==='acked'?'acked':'failed'}await saveM(x);nm++}
+ if(cb.checked&&d.me){S.me={id:d.me.id,name:String(d.me.name||S.me.name).slice(0,40)};await safe(dbPut('kv',S.me,'me'));startPeer()}
+ toast('Restored '+nc+' contacts and '+nm+' messages.');renderList();renderSet()}
+async function clearHist(){if(!await confirmM('Clear all history?','All messages and files on this device are deleted. Contacts stay. This cannot be undone. Export a backup first if unsure.','Clear history',1))return;
+ await safe(IO('msgs','readwrite',o=>o.clear()));await safe(IO('blobs','readwrite',o=>o.clear()));S.mem.clear();revoke();S.msgs=[];for(const c of S.cs.values()){c.last=null;c.unread=0;await saveC(c)}renderList();if(S.cur)renderMsgs();toast('History cleared.')}
+/* ---------- navigation & wiring ---------- */
+function go(v){if(v==='util'){location.href=UTIL;return}S.view=v;$('#v-chats').classList.toggle('on',v==='chats');$('#v-set').classList.toggle('on',v==='set');$('#v-posts').classList.toggle('on',v==='posts');document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));if(v==='set')renderSet();if(v==='posts')renderPosts();syncNav()}
+const syncNav=()=>document.body.classList.toggle('inchat',S.view==='chats'&&$('#v-chats').classList.contains('open'));
+document.querySelectorAll('[data-i]').forEach(e=>e.append(ic(e.dataset.i)));
+for(const [i,n,l] of [['#addb','add','Add contact'],['#bkb','back'],['#rcb','refresh'],['#srb','search'],['#mnb','more'],['#atb','attach'],['#mic','mic'],['#snb','send']])$(i).append(ic(n));
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>go(b.dataset.v));
+$('#addb').onclick=()=>S.tab==='status'?addStatus():addDialog();$('#sq').oninput=renderList;
+$('#bkb').onclick=()=>{$('#v-chats').classList.remove('open');S.cur=null;$('#chat').classList.remove('has');renderList();syncNav()};
+$('#rcb').onclick=()=>{const ct=S.cs.get(S.cur);if(ct.paused){ct.paused=false;saveC(ct)}if(S.sig!=='online')startPeer();else kick(S.cur,true,true);toast('Reconnecting using the saved contact…')};
+$('#srb').onclick=()=>{const s=$('#cs');s.style.display=s.style.display==='block'?'none':'block';if(s.style.display==='block')s.focus();else{S.q='';s.value='';renderMsgs()}};
+$('#cs').oninput=e=>{S.q=e.target.value;renderMsgs()};$('#mnb').onclick=()=>contactMenu(S.cur);
+$('#snb').onclick=sendMsg;$('#inp').oninput=()=>{autosize();if(S.prefs.typ&&S.cur&&S.cur!=='self'){const c=lk(S.cur).conn;if(c&&c.open&&Date.now()-(S.tpt||0)>3000){S.tpt=Date.now();c.send({v:1,t:'typ',on:1})}}};$('#inp').onkeydown=e=>{if(e.key==='Enter'&&!e.isComposing){const go=S.prefs.enter?!e.shiftKey:(e.ctrlKey||e.metaKey);if(go){e.preventDefault();sendMsg()}}};
+$('#atb').onclick=()=>$('#fi').click();$('#fi').onchange=e=>{queueFiles([...e.target.files]);e.target.value=''};
+addEventListener('online',()=>{S.sigTries=0;if(S.peer&&S.peer.disconnected&&!S.peer.destroyed)S.peer.reconnect();else if(!S.peer||S.peer.destroyed)startPeer();S.cs.forEach(c=>kick(c.id,true))});
+addEventListener('offline',()=>setSig('offline','no network'));
+document.addEventListener('visibilitychange',()=>{if(document.hidden)return;if(S.cur)sendRead(S.cur);if(S.sig!=='online'&&S.sigTries<8)sigRetry();S.cs.forEach(c=>{if(lk(c.id).state!=='online'&&lk(c.id).state!=='failed')kick(c.id,false)})});
+if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('sw.js').then(r=>r.addEventListener('updatefound',()=>{const w=r.installing;w.addEventListener('statechange',()=>{if(w.state==='installed'&&navigator.serviceWorker.controller)toast('A new version is ready.',()=>{S.reload=1;w.postMessage('skip')},'Update')})})).catch(()=>{}));
+ navigator.serviceWorker.addEventListener('controllerchange',()=>{if(S.reload)location.reload()})}
+/* ---------- profile, receipts, status, extras ---------- */
+const AC=[['teal','#0f9d8f'],['blue','#2f7de1'],['purple','#7c5cd6'],['rose','#d6457a'],['amber','#d98a1c'],['green','#2e9b4f']];
+const tg=(label,key,on)=>h('label',{class:'row'},h('input',{type:'checkbox',style:'width:auto',checked:S.prefs[key],onchange:e=>{S.prefs[key]=e.target.checked;savePrefs();rerender();on&&on(e.target.checked)}}),label);
+const sel=(label,key,opts)=>[h('p',{},label),h('select',{'aria-label':label,onchange:e=>{const o=opts.find(x=>String(x[0])===e.target.value);S.prefs[key]=o?o[0]:e.target.value;savePrefs();rerender()}},opts.map(([v,l])=>h('option',{value:v,selected:S.prefs[key]===v},l)))];
+const stWho=()=>{const m=S.prefs.stMode,n=(S.prefs.stList||[]).length;return m==='all'?'All contacts':m==='except'?'All except '+n:'Only '+n+' selected'};
+async function shrink(f,max,q,lim){try{const bm=await createImageBitmap(f),r=Math.min(1,max/Math.max(bm.width,bm.height)),cv=document.createElement('canvas');cv.width=Math.max(1,Math.round(bm.width*r));cv.height=Math.max(1,Math.round(bm.height*r));cv.getContext('2d').drawImage(bm,0,0,cv.width,cv.height);let o=cv.toDataURL('image/jpeg',q);while(o.length>lim&&q>.3){q-=.1;o=cv.toDataURL('image/jpeg',q)}return o.length<=lim?o:null}catch{return null}}
+async function saveProf(p){Object.assign(S.me,p);await safe(dbPut('kv',S.me,'me'));S.cs.forEach(c=>c.id!=='self'&&sendProf(c.id));renderSet()}
+function sendProf(id){const c=lk(id).conn;if(c&&c.open)c.send({v:1,t:'prof',name:S.me.name,about:S.me.about||'',av:S.prefs.showAv?(S.me.av||''):''})}
+function onProf(id,d){const ct=S.cs.get(id);if(!ct)return;const nm=typeof d.name==='string'?d.name.trim().slice(0,40):'';if(nm){ct.rname=nm;if(!ct.nick)ct.name=nm}
+ ct.about=typeof d.about==='string'?d.about.slice(0,140):'';ct.av=typeof d.av==='string'&&d.av.startsWith('data:image/jpeg;base64,')&&d.av.length<80000?d.av:'';saveC(ct);renderList();if(S.cur===id)renderHead()}
+function sendRead(id){if(!S.prefs.rcpt||document.hidden||S.locked||S.cur!==id||id==='self')return;const c=lk(id).conn;if(!c||!c.open)return;const ms=S.msgs.filter(m=>m.dir==='in'&&!m.rd&&!m.del).slice(-100);if(!ms.length)return;c.send({v:1,t:'read',ids:ms.map(wid)});ms.forEach(m=>{m.rd=1;saveM(m)})}
+async function onRead(id,d){if(!S.prefs.rcpt||!Array.isArray(d.ids))return;for(const mid of d.ids.slice(0,200)){if(typeof mid!=='string')continue;const m=await loc(id,mid,'out');if(m&&!m.file&&!m.del&&m.st!=='read')await upd(m,{st:'read'})}}
+async function showStarred(id){const all=(await dbAll('msgs')).filter(m=>m.star&&!m.del&&(!id||m.chat===id)).sort((a,b)=>b.ts-a.ts).slice(0,60);
+ await modal(id?'Starred messages':'All starred messages',h('div',{style:'max-height:55vh;overflow:auto'},all.length?all.map(m=>h('p',{},h('b',{},(S.cs.get(m.chat)||{}).name||'?'),' · '+fmtT(m.ts)+' · '+(m.file?'📎 '+m.file.name:(m.txt||'').slice(0,160)))):h('p',{},'Nothing starred yet. Open a message’s ⋮ menu and choose Star.')),[['Close','no']])}
+async function purge(){for(const c of S.cs.values()){if(!c.dis)continue;const lim=Date.now()-c.dis*1000,ms=await dbChat(c.id);let ch=0;for(const m of ms)if(m.ts<lim&&!m.star){await dbDel('msgs',m.id);if(m.file)await dbDel('blobs',m.id).catch(()=>{});S.mem.delete(m.id);ch=1}if(ch&&S.cur===c.id){S.msgs=S.msgs.filter(m=>m.ts>=lim||m.star);renderMsgs()}}}
+/* status */
+const DAY=864e5,stAllowed=id=>{const m=S.prefs.stMode,l=S.prefs.stList||[];return m==='all'||(m==='except'?!l.includes(id):l.includes(id))};
+function stPrune(){const n=Date.now();S.sts.mine=S.sts.mine.filter(x=>n<(x.ex||x.ts+DAY));for(const k in S.sts.theirs){S.sts.theirs[k]=S.sts.theirs[k].filter(x=>n<(x.ex||x.ts+DAY));if(!S.sts.theirs[k].length||!S.cs.has(k))delete S.sts.theirs[k]}}
+const stSave=()=>safe(dbPut('kv',S.sts,'st'));
+function stSendTo(id){const c=lk(id).conn;if(!c||!c.open)return;const ok=stAllowed(id)?S.sts.mine:[];for(const x of ok)c.send({v:1,t:'st',...stWire(x)});c.send({v:1,t:'stl',ids:ok.map(x=>x.id)})}
+function onSt(id,d){if(typeof d.id!=='string'||d.id.length>40||!['text','img'].includes(d.k)||typeof d.txt!=='string'||!Number.isFinite(d.ts))return;
+ if(d.k==='img'&&!(typeof d.img==='string'&&d.img.startsWith('data:image/jpeg;base64,')&&d.img.length<400000))return;
+ const a=S.sts.theirs[id]||(S.sts.theirs[id]=[]);if(a.some(x=>x.id===d.id))return;
+ a.push({id:d.id,ts:Math.min(d.ts,Date.now()),k:d.k,txt:d.txt.slice(0,700),bg:/^#[0-9a-f]{6}$/i.test(d.bg)?d.bg:'#0f9d8f',img:d.k==='img'?d.img:'',ex:(Number.isFinite(d.ex)&&d.ex>d.ts&&d.ex<=d.ts+DAY)?d.ex:0,seen:false});a.sort((x,y)=>x.ts-y.ts);if(a.length>20)a.splice(0,a.length-20);stSave();if(S.tab==='status')renderStatus()}
+async function postStatus(x){S.sts.mine.push(x);await stSave();S.cs.forEach(c=>c.id!=='self'&&stAllowed(c.id)&&stSendTo(c.id));renderStatus()}
+async function addStatus(){const cols=['#0f9d8f','#2f7de1','#7c5cd6','#d6457a','#d98a1c','#3a4a49'];let bg=cols[0],img=null;
+ const ta=h('textarea',{rows:4,maxlength:700,placeholder:'Type a status','aria-label':'Status text'}),sw=h('div',{class:'sw'}),pv=h('p',{},''),pubCb=h('input',{type:'checkbox',style:'width:auto',disabled:!S.prefs.pubOn,title:S.prefs.pubOn?'':'Turn on Public status first'});
+ const paint=()=>{sw.replaceChildren(...cols.map(c=>h('button',{class:c===bg?'on':'',style:'background:'+c,'aria-label':'Background '+c,onclick:()=>{bg=c;paint()}})));ta.style.background=img?'':bg;ta.style.color=img?'':'#fff'};
+ const fi=h('input',{type:'file',accept:'image/*','aria-label':'Status photo',onchange:async e=>{const f=e.target.files[0];if(!f)return;img=await shrink(f,S.prefs.saver?480:720,S.prefs.saver?.5:.72,150000);pv.textContent=img?'Photo attached; the text becomes its caption.':'Could not use that image.';paint()}});paint();
+ const v=await modal('New status',h('div',{},ta,h('p',{},'Background'),sw,h('p',{},'Or add a photo:'),fi,pv,h('label',{class:'row'},pubCb,'Also make public (anyone with my public status link)'),h('p',{},'Visible for '+S.prefs.stHrs+' hours to the contacts allowed in Status privacy, delivered only while they are online with you.')),[['Cancel','no'],['Post','ok','pri']]);
+ if(v!=='ok')return;const txt=ta.value.trim();if(!txt&&!img)return toast('Add text or a photo.');
+ await postStatus({id:rnd(14),ts:Date.now(),k:img?'img':'text',txt,bg,img:img||'',ex:Date.now()+S.prefs.stHrs*36e5,pub:!!pubCb.checked});toast('Status posted.')}
+async function stSettings(){const sl=h('select',{'aria-label':'Who can see my status'},[['all','All my contacts'],['except','All except…'],['only','Only share with…']].map(([v,l])=>h('option',{value:v,selected:S.prefs.stMode===v},l)));
+ const cb=[...S.cs.values()].filter(c=>c.id!=='self').map(c=>[c,h('input',{type:'checkbox',style:'width:auto',checked:(S.prefs.stList||[]).includes(c.id)})]);
+ const v=await modal('Status privacy',h('div',{},sl,h('p',{},'Contacts used by “except” or “only”:'),...cb.map(([c,i])=>h('label',{class:'row'},i,c.name))),[['Cancel','no'],['Save','ok','pri']]);
+ if(v!=='ok')return;S.prefs.stMode=sl.value;S.prefs.stList=cb.filter(([,i])=>i.checked).map(([c])=>c.id);savePrefs();S.cs.forEach(c=>c.id!=='self'&&stSendTo(c.id));if(S.view==='set')renderSet();toast('Status privacy saved.')}
+function viewSt(list,owner,name){let i=owner==='me'?0:Math.max(0,list.findIndex(x=>!x.seen)),tm;const ov=h('div',{class:'ov',role:'dialog','aria-label':'Status',tabindex:-1});
+ const close=()=>{clearTimeout(tm);ov.remove();renderStatus()};ov.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
+ const show=()=>{clearTimeout(tm);const x=list[i];if(!x)return close();
+  if(owner!=='me'&&owner!=='pub'){x.seen=true;stSave();const c=lk(owner).conn;if(c&&c.open&&S.prefs.rcpt)c.send({v:1,t:'sv',id:x.id})}
+  const vw=owner==='me'?Object.keys(x.vw||{}).map(k=>(S.cs.get(k)||{}).name||'Unknown'):[];
+  ov.replaceChildren(h('div',{class:'pb'},list.map((_,j)=>h('i',{class:j<=i?'d':''}))),
+   h('div',{class:'tp'},h('span',{},name+' · '+fmtT(x.ts)),h('button',{class:'ib','aria-label':'Close',onclick:close},'✕')),
+   h('div',{class:'sc',style:x.k==='text'?'background:'+x.bg:null,onclick:e=>{i=Math.max(0,i+(e.clientX<innerWidth/3?-1:1));show()}},x.k==='img'?[h('img',{src:x.img,alt:''}),x.txt?h('p',{},x.txt):null]:x.txt),
+   owner==='me'?h('div',{class:'tp'},h('span',{},'Viewed by '+(vw.length?vw.join(', '):'nobody yet')),h('button',{class:'btn danger',onclick:async()=>{S.sts.mine=S.sts.mine.filter(y=>y!==x);list.splice(i,1);await stSave();S.cs.forEach(c=>c.id!=='self'&&stSendTo(c.id));if(!list.length)close();else{i=Math.min(i,list.length-1);show()}}},'Delete')):null);
+  tm=setTimeout(()=>{i++;show()},(S.prefs.stSpd||6)*1000)};
+ document.body.append(ov);ov.focus();show()}
+function renderStatus(){stPrune();const p=$('#stp');if(!p||S.tab!=='status')return;const mine=S.sts.mine;
+ const rows=[h('button',{class:'ci',onclick:()=>mine.length?viewSt([...mine],'me','My status'):addStatus()},avEl(S.me.name,S.me.av,mine.length?'ring':''),h('div',{class:'cm'},h('b',{},'My status'),h('span',{},mine.length?mine.length+' active · tap to view':'Tap to add a status update'))),
+  h('div',{class:'row',style:'padding:4px 10px'},h('button',{class:'btn',onclick:addStatus},'＋ New status'),h('button',{class:'btn',onclick:stSettings},'Status privacy'),h('button',{class:'btn',onclick:publicDialog},'🌐 Public status')),h('div',{class:'sig',style:'padding:10px 10px 4px'},'Recent updates')];
+ const th=Object.keys(S.sts.theirs).map(k=>({c:S.cs.get(k),l:S.sts.theirs[k]})).filter(x=>x.c&&!x.c.smute&&x.l.length).sort((a,b)=>b.l[b.l.length-1].ts-a.l[a.l.length-1].ts);
+ if(!th.length)rows.push(h('div',{class:'empty'},'No updates yet. Contacts’ statuses arrive when they are online with you and share with you, and vanish after 24 hours.'));
+ for(const x of th)rows.push(h('button',{class:'ci',onclick:()=>viewSt(x.l,x.c.id,x.c.name)},avEl(x.c.name,x.c.av,'ring'+(x.l.some(y=>!y.seen)?'':' seen')),h('div',{class:'cm'},h('b',{},x.c.name),h('span',{},fmtT(x.l[x.l.length-1].ts)))));
+ p.replaceChildren(...rows)}
+function setTab(t){S.tab=t;document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));const st=t==='status';$('#cl').style.display=$('#sq').style.display=$('#chips').style.display=st?'none':'';$('#stp').style.display=st?'block':'none';$('#addb').setAttribute('aria-label',st?'New status':'Add contact');if(st)renderStatus()}
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>setTab(b.dataset.t));
+S.pt='emoji';
+const EMOJI=['😀','😂','🥹','😍','😘','😎','🤔','😢','😭','😡','👍','👎','🙏','👏','🔥','🎉','❤️','💯','🤝','🙌','😅','🥳','😴','🤗','😮'];
+function renderPanel(){const t=S.pt,tabs=h('div',{class:'tabs',style:'padding:0 0 6px'},[['emoji','Emoji'],['stk','Stickers'],['gif','GIFs']].map(([k,l])=>h('button',{type:'button',class:t===k?'on':'',onclick:()=>{S.pt=k;renderPanel()}},l))),body=h('div',{});
+ if(t==='emoji')EMOJI.forEach(e=>body.append(h('button',{type:'button','aria-label':e,class:'ib',style:'display:inline-grid;font-size:22px',onclick:()=>{const i=$('#inp');i.setRangeText(e,i.selectionStart,i.selectionEnd,'end');autosize();i.focus()}},e)));
+ else if(t==='stk')stkBody(body);else gifBody(body);$('#em').replaceChildren(tabs,body)}
+$('#emb').onclick=()=>{const e=$('#em');if(e.style.display==='block')e.style.display='none';else{e.style.display='block';renderPanel()}};
+setInterval(()=>{purge();stPrune();if(S.tab==='status')renderStatus()},60000);
+/* ---------- v1.2 extras ---------- */
+const rerender=()=>{theme();renderList();if(S.cur)renderMsgs();if(S.tab==='status')renderStatus()};
+const dsep=ts=>{if(!S.prefs.dsp)return document.createDocumentFragment();const d=new Date(ts),n=new Date(),y=new Date(Date.now()-864e5);return h('div',{class:'dsep'},d.toDateString()===n.toDateString()?'Today':d.toDateString()===y.toDateString()?'Yesterday':d.toLocaleDateString([],{day:'numeric',month:'long',year:'numeric'}))};
+function linkify(t){if(!S.prefs.links)return t;const out=[],re=/https?:\/\/[^\s<>"]+/g;let i=0,x;while((x=re.exec(t))){out.push(t.slice(i,x.index));let u=x[0],tail='';const mt=/[.,;:!?)]+$/.exec(u);if(mt){tail=mt[0];u=u.slice(0,-tail.length)}try{const U=new URL(u);out.push(/^https?:$/.test(U.protocol)?h('a',{href:U.href,target:'_blank',rel:'noopener noreferrer nofollow'},u):u)}catch{out.push(u)}out.push(tail);i=x.index+x[0].length}out.push(t.slice(i));return out}
+const dndNow=()=>{if(!S.prefs.dnd)return false;const n=new Date(),v=n.getHours()*60+n.getMinutes(),p=t=>{const a=String(t).split(':');return +a[0]*60+ +a[1]},f=p(S.prefs.dndF),t=p(S.prefs.dndT);return f<=t?(v>=f&&v<t):(v>=f||v<t)};
+let AX;function beep(){try{AX=AX||new(window.AudioContext||window.webkitAudioContext)();if(AX.resume)AX.resume();const o=AX.createOscillator(),g=AX.createGain();o.frequency.value=880;g.gain.value=.06;o.connect(g);g.connect(AX.destination);o.start();o.stop(AX.currentTime+.12)}catch{}}
+function alertIn(ct){if(ct.mute||dndNow()||(!document.hidden&&S.cur===ct.id))return;if(S.prefs.snd)beep();if(S.prefs.vib&&navigator.vibrate)navigator.vibrate(120)}
+const dlText=(t,n)=>{const u=URL.createObjectURL(new Blob([t],{type:'text/plain'})),a=h('a',{href:u,download:n});document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),6e4)};
+function acceptF(m,ok){const r=S.rx.get(m.id),c=lk(m.chat).conn;if(!r||!c||!c.open){S.rx.delete(m.id);setM(m,{st:'failed',err:'Sender is no longer connected'});return}
+ if(ok){c.send({v:1,t:'fok',tid:r.tid});r.t0=Date.now();setM(m,{st:'receiving'})}else{c.send({v:1,t:'fno',tid:r.tid,r:'Declined by recipient'});S.rx.delete(m.id);setM(m,{st:'cancelled'})}}
+async function pick(title,note){const cb=[...S.cs.values()].map(c=>[c,h('input',{type:'checkbox',style:'width:auto'})]);const v=await modal(title,h('div',{style:'max-height:50vh;overflow:auto'},note?h('p',{},note):null,...cb.map(([c,i])=>h('label',{class:'row'},i,c.name))),[['Cancel','no'],['Continue','ok','pri']]);return v==='ok'?cb.filter(([,i])=>i.checked).map(([c])=>c.id):[]}
+async function sendTo(id,txt,fw){const m={id:rnd(16),chat:id,dir:'out',ts:Date.now(),txt,st:id==='self'?'note':'local'};if(fw)m.fw=1;await saveM(m);if(S.cur===id){S.msgs.push(m);appendB(m)}touch(S.cs.get(id),m);if(id!=='self')sendText(m)}
+async function broadcast(){const ids=await pick('Broadcast to…','Each recipient gets a normal individual message.');if(!ids.length)return;const i=h('textarea',{rows:3,maxlength:2000,'aria-label':'Message'});const v=await modal('Broadcast message',i,[['Cancel','no'],['Send','ok','pri']]);const t=i.value.trim();if(v!=='ok'||!t)return;for(const id of ids)await sendTo(id,t,0);toast('Queued for '+ids.length+' chat(s). Offline contacts get it when reconnected.')}
+async function searchAll(){const out=h('div',{style:'max-height:50vh;overflow:auto'}),i=h('input',{placeholder:'Search all messages','aria-label':'Search all messages',type:'search'});let all=null,tm;
+ i.oninput=()=>{clearTimeout(tm);tm=setTimeout(async()=>{const q=i.value.trim().toLowerCase();if(q.length<2){out.replaceChildren();return}all=all||await dbAll('msgs');const r=all.filter(m=>!m.del&&((m.txt||'').toLowerCase().includes(q)||(m.file&&m.file.name.toLowerCase().includes(q)))).sort((a,b)=>b.ts-a.ts).slice(0,50);
+  out.replaceChildren(...(r.length?r.map(m=>h('button',{class:'ci',onclick:e=>e.currentTarget.closest('dialog').close('c:'+m.chat)},h('div',{class:'cm'},h('b',{},(S.cs.get(m.chat)||{}).name||'?'),h('span',{},(m.file?'📎 '+m.file.name:m.txt)+' · '+fmtT(m.ts))))):[h('p',{},'No matches.')]))},200)};
+ const v=await modal('Search all messages',h('div',{},i,out),[['Close','no']]);if(v&&v.startsWith('c:')){go('chats');openChat(v.slice(2))}}
+async function clearMedia(){if(!await confirmM('Clear downloaded media?','Saved files are deleted from this device. Message text stays; files show as not kept.','Clear',1))return;await safe(IO('blobs','readwrite',o=>o.clear()));S.mem.clear();revoke();if(S.cur)renderMsgs();toast('Media cleared.')}
+const peerOpts=()=>{const o={config:{iceServers:iceList()}},g=S.prefs.sig;if(g&&g.host&&/^[a-z0-9.-]+$/i.test(g.host)){o.host=g.host;o.port=+g.port||443;o.path=g.path||'/';o.secure=g.secure!==false}return o};
+const setSrv=(k,v)=>{const val=typeof v==='string'?v.trim():v;if(k==='host'&&val&&!/^[a-z0-9.-]{1,253}$/i.test(val))return toast('Host looks invalid.');if(k==='port'&&val&&!/^\d{1,5}$/.test(val))return toast('Port must be a number.');
+ S.prefs.sig=Object.assign({host:'',port:'',path:'',secure:true},S.prefs.sig,{[k]:k==='path'&&val&&!val.startsWith('/')?'/'+val:val});savePrefs();toast('Saved. Restart the connection to apply.')};
+/* public status */
+const stWire=x=>({id:x.id,ts:x.ts,k:x.k,txt:x.txt||'',bg:x.bg||'',img:x.img||'',ex:x.ex||0});
+const stOK=d=>d&&typeof d.id==='string'&&d.id.length<=40&&['text','img'].includes(d.k)&&typeof d.txt==='string'&&Number.isFinite(d.ts)&&(d.k!=='img'||(typeof d.img==='string'&&d.img.startsWith('data:image/jpeg;base64,')&&d.img.length<400000));
+function onPubReq(c){const n=Date.now();S.pubRate=S.pubRate||{};if(n-(S.pubRate[c.peer]||0)<5000){c.close();return}S.pubRate[c.peer]=n;
+ if(!S.prefs.pubOn){c.send({v:1,t:'spubr',ok:0});setTimeout(()=>{try{c.close()}catch{}},500);return}
+ stPrune();c.send({v:1,t:'spubr',ok:1,name:S.me.name,items:S.sts.mine.filter(x=>x.pub).slice(-10).map(stWire)});setTimeout(()=>{try{c.close()}catch{}},4000)}
+function onPubRes(c,d){if(!c._pubq)return;clearTimeout(c._pt);
+ if(!d.ok){toast('That person has not turned on public status.');c.close();return}
+ const now=Date.now(),items=(Array.isArray(d.items)?d.items:[]).slice(0,10).filter(stOK).map(x=>({id:x.id,ts:Math.min(x.ts,now),k:x.k,txt:x.txt.slice(0,700),bg:/^#[0-9a-f]{6}$/i.test(x.bg)?x.bg:'#0f9d8f',img:x.k==='img'?x.img:'',ex:(Number.isFinite(x.ex)&&x.ex>x.ts&&x.ex<=x.ts+DAY)?x.ex:0})).filter(x=>now<(x.ex||x.ts+DAY));
+ c.close();if(!items.length)return toast('No public status right now.');viewSt(items,'pub',String(d.name||'Public status').slice(0,40))}
+function openPublic(code){const m=/^cly1s-(cly-[a-z2-7]{20})$/.exec(code.trim().toLowerCase());if(!m)return toast('That is not a valid public status link.');
+ if(m[1]===S.me.id){const it=S.sts.mine.filter(x=>x.pub);return it.length?viewSt([...it],'pub','My public status'):toast('You have no public statuses.')}
+ if(!S.peer||!S.peer.open)return toast('Connection service is not online yet.');
+ const c=S.peer.connect(m[1],{reliable:true});c._pubq=1;onConn(c,true);toast('Contacting…');c._pt=setTimeout(()=>{try{c.close()}catch{}toast('No response. Their device may be offline.')},20000)}
+async function publicDialog(){const code='cly1s-'+S.me.id,inp=h('input',{placeholder:'Paste a public status link','aria-label':'Public status link'});
+ const body=h('div',{},h('p',{},'Public status lets anyone who has your link view the statuses you mark as public, without becoming a contact. It works only while your Connectly is open and online. Anyone with the link also learns your device ID.'),h('p',{},S.prefs.pubOn?'Public status is ON.':'Public status is OFF.'),S.prefs.pubOn?h('p',{class:'mono'},code):null,h('p',{},'View someone’s public status:'),inp);
+ const v=await modal('Public status',body,[['Close','no'],[S.prefs.pubOn?'Turn off':'Turn on','tg'],...(S.prefs.pubOn?[['Copy link','cp']]:[]),['View','go','pri']]);
+ if(v==='tg'){S.prefs.pubOn=!S.prefs.pubOn;savePrefs();toast(S.prefs.pubOn?'Public status is on. Tick “Also make public” when posting.':'Public status is off.');if(S.view==='set')renderSet()}
+ if(v==='cp')navigator.clipboard.writeText(code).then(()=>toast('Copied'),()=>toast('Copy failed'));
+ if(v==='go'&&inp.value.trim())openPublic(inp.value)}
+/* app lock */
+const sha=async t=>hex(await crypto.subtle.digest('SHA-256',enc(t)));
+function pinDlg(title){const i=h('input',{type:'password',inputmode:'numeric',maxlength:8,autocomplete:'off','aria-label':'PIN'});return modal(title,i,[['Cancel','no'],['OK','ok','pri']]).then(v=>v==='ok'&&/^\d{4,8}$/.test(i.value)?i.value:null)}
+async function setPin(){const a=await pinDlg('Choose a PIN (4–8 digits)');if(!a)return toast('PIN must be 4–8 digits.');const b=await pinDlg('Repeat the PIN');if(a!==b)return toast('PINs did not match.');const salt=rnd(12);S.lock={s:salt,h:await sha(salt+a)};await safe(dbPut('kv',S.lock,'lock'));toast('PIN set.');renderSet()}
+async function rmPin(){const p=await pinDlg('Enter current PIN');if(!p||await sha(S.lock.s+p)!==S.lock.h)return toast('Wrong PIN.');S.lock=null;await safe(dbDel('kv','lock'));renderSet()}
+function showLock(){if(S.locked||!S.lock)return;S.locked=1;const i=h('input',{type:'password',inputmode:'numeric',maxlength:8,autocomplete:'off','aria-label':'PIN',placeholder:'PIN'}),m=h('p',{},'');let bad=0,until=0;
+ const ov=h('div',{id:'lock',role:'dialog','aria-label':'Locked'},h('h2',{},'Connectly is locked'),i,m,h('button',{class:'btn pri',onclick:tryU},'Unlock'));
+ async function tryU(){if(Date.now()<until){m.textContent='Too many attempts. Wait a moment.';return}if(await sha(S.lock.s+i.value)===S.lock.h){ov.remove();S.locked=0;if(S.cur)sendRead(S.cur)}else{i.value='';if(++bad>=5){bad=0;until=Date.now()+30000}m.textContent='Wrong PIN.'}}
+ i.addEventListener('keydown',e=>{if(e.key==='Enter')tryU()});document.body.append(ov);i.focus()}
+document.addEventListener('visibilitychange',()=>{document.body.style.filter=document.hidden&&S.prefs.hidesw?'blur(24px)':'';if(document.hidden){S.hid=Date.now();return}if(S.lock&&(S.prefs.lockMin||0)*6e4<=Date.now()-(S.hid||0))showLock()});
+/* ---------- posts, stickers, GIFs, voice notes ---------- */
+const poSave=()=>safe(dbPut('kv',S.posts,'po')),poAllowed=id=>{const m=S.prefs.poMode,l=S.prefs.poList||[];return m==='all'||(m==='except'?!l.includes(id):l.includes(id))};
+function poSendTo(id){const c=lk(id).conn;if(!c||!c.open)return;const ok=poAllowed(id)?S.posts.mine.slice(-30):[];for(const p of ok)c.send({v:1,t:'po',id:p.id,ts:p.ts,txt:p.txt||'',img:p.img||''});c.send({v:1,t:'pol',ids:ok.map(p=>p.id)})}
+function plSync(id){const c=lk(id).conn;if(!c||!c.open)return;for(const p of S.posts.theirs[id]||[])if(p.liked)c.send({v:1,t:'pl',id:p.id,on:1})}
+function onPo(id,d){if(typeof d.id!=='string'||d.id.length>40||typeof d.txt!=='string'||d.txt.length>1000||!Number.isFinite(d.ts))return;const img=typeof d.img==='string'&&d.img.startsWith('data:image/jpeg;base64,')&&d.img.length<500000?d.img:'';
+ const a=S.posts.theirs[id]||(S.posts.theirs[id]=[]);if(a.some(x=>x.id===d.id))return;if(!d.txt&&!img)return;a.push({id:d.id,ts:Math.min(d.ts,Date.now()),txt:d.txt,img,liked:false});a.sort((x,y)=>x.ts-y.ts);if(a.length>50)a.splice(0,a.length-50);poSave();renderPosts()}
+async function addPost(){const ta=h('textarea',{rows:4,maxlength:1000,placeholder:'What would you like to share?','aria-label':'Post text'});let img='';const pv=h('p',{});
+ const fi=h('input',{type:'file',accept:'image/*','aria-label':'Post photo',onchange:async e=>{const f=e.target.files[0];if(!f)return;img=await shrink(f,S.prefs.saver?600:900,S.prefs.saver?.5:.72,250000)||'';pv.textContent=img?'Photo attached.':'Could not use that image.'}});
+ const v=await modal('New post',h('div',{},ta,h('p',{},'Photo (optional):'),fi,pv,h('p',{},'Visible to the contacts allowed in Posts privacy, delivered while they are online with you. It stays until you delete it.')),[['Cancel','no'],['Post','ok','pri']]);
+ if(v!=='ok')return;const txt=ta.value.trim();if(!txt&&!img)return toast('Add text or a photo.');S.posts.mine.push({id:rnd(14),ts:Date.now(),txt,img,lk:{}});await poSave();S.cs.forEach(c=>c.id!=='self'&&poSendTo(c.id));renderPosts();toast('Posted.')}
+async function audSettings(kind,title){const sl=h('select',{'aria-label':'Who can see'},[['all','Everyone (all my contacts)'],['except','All contacts except…'],['only','Only share with…']].map(([v,l])=>h('option',{value:v,selected:S.prefs[kind+'Mode']===v},l)));
+ const cb=[...S.cs.values()].filter(c=>c.id!=='self').map(c=>[c,h('input',{type:'checkbox',style:'width:auto',checked:(S.prefs[kind+'List']||[]).includes(c.id)})]);
+ const v=await modal(title,h('div',{},sl,h('p',{},'Contacts used by “except” or “only”:'),...cb.map(([c,i])=>h('label',{class:'row'},i,c.name))),[['Cancel','no'],['Save','ok','pri']]);
+ if(v!=='ok')return;S.prefs[kind+'Mode']=sl.value;S.prefs[kind+'List']=cb.filter(([,i])=>i.checked).map(([c])=>c.id);savePrefs();S.cs.forEach(c=>c.id!=='self'&&poSendTo(c.id));if(S.view==='set')renderSet();toast('Saved.')}
+function renderPosts(){const v=$('#v-posts');if(!v||S.view!=='posts')return;
+ const all=[...S.posts.mine.map(o=>({o,own:1})),...Object.entries(S.posts.theirs).flatMap(([k,a])=>S.cs.has(k)&&!S.cs.get(k).blocked?a.map(o=>({o,from:k})):[])].sort((a,b)=>b.o.ts-a.o.ts);
+ const card=({o,own,from})=>{const c=own?S.me:S.cs.get(from),n=Object.keys(o.lk||{}).length,nm=Object.keys(o.lk||{}).map(k=>(S.cs.get(k)||{}).name||'Someone').join(', ');
+  return h('div',{class:'pc'},h('div',{class:'row'},avEl(c.name,c.av),h('div',{class:'grow'},h('b',{},own?'You':c.name),h('div',{class:'sig'},fmtT(o.ts)+' · '+new Date(o.ts).toLocaleDateString()))),o.txt?h('div',{class:'tx',style:'white-space:pre-wrap;margin-top:8px'},linkify(o.txt)):null,o.img?h('img',{class:'pi',src:o.img,alt:'Post photo'}):null,
+   h('div',{class:'row'},own?h('span',{title:nm},'♥ '+n+(n?' like'+(n>1?'s':''):'')):h('button',{class:'btn',onclick:()=>{o.liked=!o.liked;poSave();const cn=lk(from).conn;if(cn&&cn.open)cn.send({v:1,t:'pl',id:o.id,on:o.liked?1:0});renderPosts()}},(o.liked?'♥ Liked':'♡ Like')),
+    own?h('button',{class:'btn danger',onclick:async()=>{if(await confirmM('Delete post?','It is removed here and from contacts who are online now.','Delete',1)){S.posts.mine=S.posts.mine.filter(x=>x!==o);await poSave();S.cs.forEach(c=>c.id!=='self'&&poSendTo(c.id));renderPosts()}}},'Delete'):null))};
+ v.replaceChildren(h('div',{class:'pw'},h('div',{class:'hd'},h('h1',{},'Posts'),h('button',{class:'btn pri',onclick:addPost},'＋ New post')),all.length?all.map(card):h('div',{class:'empty'},'No posts yet. Posts you share appear for contacts while you are both online and stay until you delete them.')))}
+/* stickers and GIFs */
+function mkStk(t,e,c){try{const cv=document.createElement('canvas');cv.width=cv.height=256;const x=cv.getContext('2d');x.fillStyle=c;x.beginPath();if(x.roundRect)x.roundRect(8,8,240,240,48);else x.rect(8,8,240,240);x.fill();x.textAlign='center';x.textBaseline='middle';x.font='110px system-ui,"Segoe UI Emoji","Apple Color Emoji",sans-serif';x.fillText(e,128,108);x.fillStyle='#fff';x.font='bold 40px system-ui,sans-serif';x.fillText(t.slice(0,12),128,206);const o=cv.toDataURL('image/webp',.85);return o.length<130000?o:null}catch{return null}}
+async function stkFrom(f){try{const bm=await createImageBitmap(f);for(const z of [256,192,128]){const cv=document.createElement('canvas'),r=Math.min(z/bm.width,z/bm.height);cv.width=Math.max(1,Math.round(bm.width*r));cv.height=Math.max(1,Math.round(bm.height*r));cv.getContext('2d').drawImage(bm,0,0,cv.width,cv.height);const o=cv.toDataURL('image/webp',S.prefs.saver?.6:.85);if(o.length<130000)return o}}catch{}return null}
+async function stkLoad(){if(S.stk)return;S.stk=(await dbGet('kv','stk').catch(()=>null))||[];if(!S.stk.length&&!(await dbGet('kv','stk0').catch(()=>0))){for(const [t,e,c] of [['OK','👍','#0f9d8f'],['LOL','😂','#d98a1c'],['Thanks','🙏','#7c5cd6'],['Love','❤️','#d6457a'],['Wow','😮','#2f7de1'],['Yes','✅','#2e9b4f'],['No','❌','#c0392b'],['Hi','👋','#3a4a49']]){const g=mkStk(t,e,c);if(g)S.stk.push({id:rnd(8),img:g})}await safe(dbPut('kv',1,'stk0'));await safe(dbPut('kv',S.stk,'stk'))}}
+async function stkBody(b){await stkLoad();
+ b.replaceChildren(h('div',{class:'row'},h('button',{type:'button',class:'btn',onclick:()=>{const i=h('input',{type:'file',accept:'image/*',onchange:async()=>{const g=i.files[0]&&await stkFrom(i.files[0]);if(!g)return toast('Could not use that image.');S.stk.push({id:rnd(8),img:g});await safe(dbPut('kv',S.stk,'stk'));stkBody(b)}});i.click()}},'＋ From image'),h('button',{type:'button',class:'btn',onclick:async()=>{const t=h('input',{placeholder:'Text (12 characters)',maxlength:12,'aria-label':'Sticker text'}),e=h('input',{placeholder:'Emoji',maxlength:8,value:'😀',style:'margin-top:8px','aria-label':'Sticker emoji'}),cols=['#0f9d8f','#2f7de1','#7c5cd6','#d6457a','#d98a1c','#3a4a49'];let c=cols[0];const sw=h('div',{class:'sw',style:'margin-top:8px'}),paint=()=>sw.replaceChildren(...cols.map(k=>h('button',{type:'button',class:k===c?'on':'',style:'background:'+k,'aria-label':'Colour '+k,onclick:()=>{c=k;paint()}})));paint();
+   const v=await modal('Text sticker',h('div',{},t,e,sw),[['Cancel','no'],['Add','ok','pri']]);if(v!=='ok')return;const g=mkStk(t.value||' ',e.value||'🙂',c);if(!g)return toast('Could not create the sticker.');S.stk.push({id:rnd(8),img:g});await safe(dbPut('kv',S.stk,'stk'));stkBody(b)}},'＋ Text sticker')),
+  h('div',{class:'sg'},S.stk.map(x=>h('div',{class:'it'},h('img',{src:x.img,alt:'Sticker',onclick:()=>sendSticker(x.img)}),h('b',{role:'button','aria-label':'Remove sticker',onclick:async()=>{S.stk=S.stk.filter(y=>y!==x);await safe(dbPut('kv',S.stk,'stk'));stkBody(b)}},'×')))))}
+async function sendSticker(img){if(!S.cur)return;const m={id:rnd(16),chat:S.cur,dir:'out',ts:Date.now(),txt:'',stk:img,st:S.cur==='self'?'note':'local'};S.msgs.push(m);await saveM(m);appendB(m);touch(S.cs.get(S.cur),m);if(S.cur!=='self')sendText(m);$('#em').style.display='none'}
+async function gifBody(b){const list=S.gifs||(S.gifs=(await dbGet('kv','gifs').catch(()=>null))||[]);
+ b.replaceChildren(h('div',{class:'row'},h('button',{type:'button',class:'btn',onclick:()=>{const i=h('input',{type:'file',accept:'image/gif,image/webp',onchange:async()=>{const f=i.files[0];if(!f)return;if(f.size>8388608)return toast('GIFs must be 8 MB or smaller.');const g={id:rnd(8),name:f.name.slice(0,60)};await safe(dbPut('blobs',f,'gif:'+g.id));list.push(g);await safe(dbPut('kv',list,'gifs'));gifBody(b)}});i.click()}},'＋ Add GIF')),h('p',{class:'sig'},'Online GIF search needs a third-party API key, which Connectly does not hardcode. Build your own library from GIF files.'),h('div',{class:'sg'}));
+ const grid=b.querySelector('.sg');for(const g of list){const im=h('img',{alt:g.name,onclick:async()=>{const bl=await dbGet('blobs','gif:'+g.id).catch(()=>null);if(!bl)return;$('#em').style.display='none';queueFiles([new File([bl],g.name,{type:bl.type||'image/gif'})],true)}});
+  grid.append(h('div',{class:'it'},im,h('b',{role:'button','aria-label':'Remove GIF',onclick:async()=>{S.gifs=list.filter(y=>y!==g);await dbDel('blobs','gif:'+g.id).catch(()=>{});await safe(dbPut('kv',S.gifs,'gifs'));gifBody(b)}},'×')));dbGet('blobs','gif:'+g.id).then(bl=>{if(bl)im.src=urlOf('gif:'+g.id,bl)}).catch(()=>{})}}
+/* voice notes */
+async function recToggle(){if(S.rec){S.rec.stop();return}if(!S.prefs.vn)return toast('Voice notes are off in Settings.');
+ if(!S.cur||S.cur==='self')return toast('Open a connected chat to send voice notes.');const L=lk(S.cur);if(!L.conn||!L.conn.open)return toast('Contact is offline.');
+ try{const st=await navigator.mediaDevices.getUserMedia({audio:true}),r=new MediaRecorder(st),ch=[],to=S.cur;S.rec=r;$('#mic').classList.add('rec');
+  r.ondataavailable=e=>{if(e.data.size)ch.push(e.data)};
+  r.onstop=()=>{st.getTracks().forEach(t=>t.stop());S.rec=null;$('#mic').classList.remove('rec');const type=(r.mimeType||'audio/webm').split(';')[0],ext=type.includes('mp4')?'m4a':type.includes('ogg')?'ogg':'webm';if(ch.length&&S.cur===to)queueFiles([new File(ch,'voice-'+Date.now()+'.'+ext,{type})],true)};
+  r.start();setTimeout(()=>{if(S.rec===r)r.stop()},(+S.prefs.vnMax||120)*1000);toast('Recording… tap the mic again to send.')}catch{toast('Microphone unavailable or permission denied.')}}
+$('#mic').onclick=recToggle;
+/* ---------- boot ---------- */
+(async()=>{
+ try{S.me=await dbGet('kv','me');const pr=await dbGet('kv','prefs');if(pr)Object.assign(S.prefs,pr);for(const c of await dbAll('contacts'))S.cs.set(c.id,c);S.sts=(await dbGet('kv','st'))||S.sts;S.posts=(await dbGet('kv','po'))||S.posts;S.lock=(await dbGet('kv','lock'))||null;S.stat=(await dbGet('kv','stat'))||S.stat}
+ catch(e){toast('Local storage is unavailable. Chats cannot be saved in this browser.')}
+ theme();navigator.storage&&navigator.storage.persist&&navigator.storage.persist().catch(()=>{});
+ if(!S.cs.has('self')){const s={id:'self',name:'My Devices',local:true,unread:0};S.cs.set('self',s);await saveC(s)}
+ if(!S.me){S.me={id:'cly-'+rnd(20),name:''};}
+ if(!S.me.name){S.me.name=await ask('Welcome to Connectly','Your display name','')||'Me';await safe(dbPut('kv',S.me,'me'))}
+ S.view='chats';stPrune();purge();renderList();syncNav();if(S.lock)showLock();
+ if(!window.isSecureContext)toast('Use localhost or HTTPS: secure features are unavailable here.');
+ startPeer()})();
+</script>
+</body>
+</html>
