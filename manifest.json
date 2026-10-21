@@ -1,7 +1,7 @@
 {
   "id": "/Connectly/",
-  "name": "Connectly",
-  "short_name": "Connectly",
+  "name": "SyncBee",
+  "short_name": "SyncBee",
   "description": "Connect. Chat. Share.",
   "start_url": "./",
   "scope": "./",
