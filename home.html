@@ -774,7 +774,7 @@ function paintSet(v,cards){const cur=CATS.some(c=>c[0]===S.setTab)?S.setTab:'Acc
  ch.addEventListener('drop',e=>{dz.style.display='none';if(!S.prefs.dd||!S.cur||!hasFiles(e))return;e.preventDefault();queueFiles([...e.dataTransfer.files])})}
 /* ---------- groups, communities and the default group ---------- */
 // TEAM.host is the admin and host device of the default group (its Device ID is shown in Settings > Account). TEAM.admins lists extra admin Device IDs.
-const TEAM={host:'cly-3vc4rypnk5662cpvjitr',admins:[],name:'MirCodeStudio Team'};
+const TEAM={host:'cly-3vc4rypnk5662cpvjitr',admins:[],name:'SyncBee'};
 const gOf=id=>S.cs.get('g:'+id),isHost=g=>g.host===S.me.id,isAdmin=(g,id)=>g.host===id||(g.admins||[]).includes(id)||(!!g.sys&&TEAM.admins.includes(id)),gCanPost=g=>!g.removed&&(!g.ann||isAdmin(g,S.me.id)),GSTM={local:'Saved locally · waiting for host',sent:'Sent to host',acked:'Stored on host',failed:'Not sent'};
 function gSendTo(id,o){const c=lk(id).conn;if(c&&c.open){try{c.send(o);return true}catch{}}return false}
 const gInfoOf=g=>({v:1,t:'ginfo',gid:g.gid,name:g.name,hostName:g.hostName||'',ann:g.ann?1:0,comm:g.comm?1:0,parent:g.parent||'',sys:g.sys?1:0,subs:(g.subs||[]).map(x=>({gid:x.gid,name:x.name})),members:g.members.map(x=>({id:x.id,name:x.name,user:x.user||''})),admins:g.admins||[],desc:g.desc||'',invAdmin:g.invAdmin?1:0,hist:g.hist===undefined?50:g.hist,dis:g.dis||0});
