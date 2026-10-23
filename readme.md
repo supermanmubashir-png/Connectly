@@ -1,4 +1,4 @@
-# SyncBee v1.3 — Connect. Chat. Share.
+# SyncBee v1.5 — Connect. Chat. Share.
 
 A small installable PWA for one-to-one chat and file transfer. You pair with a contact **once**; after that SyncBee reconnects to them automatically.
 
@@ -125,17 +125,18 @@ Limits: no groups, calls or push delivery. Everything that depends on a contact 
 
 - The creator of a group is its **host**. The host's device is the group's mailbox: it stores messages and passes them to members when they connect, so a message from someone who has since gone offline still reaches the others, as long as the host's device is online. If the host is offline, new messages wait on the sender's device and go out when the host returns. There is no server.
 - A **community** is an announcement group (only hosts post) that lists groups members can join. Groups and communities are joined with an invitation code or QR (valid 7 days, many people).
-- **Default group "MirCodeStudio Team"**: set `TEAM.host` near the group code in `home.html` to the Device ID of the device that will host it (Settings, Account). Every new account then joins automatically and cannot leave. Leave it empty and the group exists but has no host. The host device must keep SyncBee open for the group to work. Anyone who knows the host's ID can join this group, so treat it as public.
+- **Default group "MirCodeStudio Team"**: its admin and host is the device with Device ID `cly-3vc4rypnk5662cpvjitr` (set in `TEAM.host` near the group code in `home.html`; `TEAM.admins` can list more admin IDs). Every new account joins automatically and cannot leave. It starts as **admins-only** (members read, admins send); an admin can switch that off in Group settings. That device must keep SyncBee open for the group to work. Anyone who knows the host's ID can join, so treat the group as public.
+- **Admins and group settings**: the creator is the admin (host). The host can make other members admins. Only admins can change group settings: name, description, only admins can send messages, only admins can invite people, how much history new members see, and disappearing messages. Changes by admins are sent to the host device, which checks the sender and applies them; requests from non-admins are ignored.
 - Files, reactions, edits and delete-for-everyone are not available inside groups yet.
 
 ### Not available (and why)
 
-- **Posts and status reaching someone while the author is offline.** They travel peer-to-peer, so a contact gets them only while you are both online, then they stay in that contact's browser. Delivery through a third party would need signed relaying or a server; groups use the host's device for this.
+- **Posts and status are delivered through a relay.** The default group's admin device doubles as a relay: when you post or update a status while it is online, it keeps a copy (up to 10 statuses and 20 posts per person) and hands it to the contacts you allow when they connect, even if you are offline by then. Limits: it works only while the relay device is online; the relay can read what passes through it (items are not end-to-end encrypted or signed); the recipient must be your contact; if you remove someone from your audience while they are offline, their copy is not recalled; likes and "viewed by" need you to be online. Switch it off in Settings, Status and posts, Offline delivery.
 - **Signing in on several devices at once with one username.** One device ID can be online on only one device, and a username directory needs a server.
 
 ## Testing status (important)
 
-**None of the following has been run by me.** I checked that the JavaScript parses (`node --check`) and ran the local, non-network features (profile, status, reply, star, edit, settings) once in a simulated browser (jsdom with a fake IndexedDB). Group, host-mailbox, invite and pairing logic was exercised in a simulated network with three in-memory app instances (8 consecutive passes); no real WebRTC, file transfer, voice recording, canvas-drawn stickers, QR camera scanning, drag and drop, sounds or the splash animation has been exercised. The code has not been run in a browser and no real two-device connection has been made, so do not assume any of it works until you have tested it. Please test each item with two independent browser profiles or two real devices:
+**None of the following has been run by me.** I checked that the JavaScript parses (`node --check`) and ran the local, non-network features (profile, status, reply, star, edit, settings) once in a simulated browser (jsdom with a fake IndexedDB). Group, admin-settings, host-mailbox, relay, invite and pairing logic was exercised in a simulated network with three in-memory app instances (36 checks, 6 consecutive passing runs); no real WebRTC, file transfer, voice recording, canvas-drawn stickers, QR camera scanning, drag and drop, sounds or the splash animation has been exercised. The code has not been run in a browser and no real two-device connection has been made, so do not assume any of it works until you have tested it. Please test each item with two independent browser profiles or two real devices:
 
 1. First-time pairing and security-code confirmation
 2. Contact saved; close and reopen; automatic reconnection with no new code
