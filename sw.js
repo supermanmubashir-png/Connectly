@@ -1,6 +1,6 @@
 'use strict';
 // Bump VERSION on every release so old caches are removed.
-const VERSION = 'syncbee-v1.4.0';
+const VERSION = 'syncbee-v1.5.0';
 const SHELL = ['./', './index.html', './home.html', './help.html', './manifest.json'];
 const OPTIONAL = ['./icon.png']; // supplied by you; a missing file must not break install
 const PEER = 'https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js';
