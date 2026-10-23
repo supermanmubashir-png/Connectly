@@ -185,7 +185,7 @@ const h=(t,a={},...c)=>{const e=document.createElement(t);for(const k in a){cons
 const rnd=n=>[...crypto.getRandomValues(new Uint8Array(n))].map(x=>B32[x%32]).join(''),sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const fmtB=n=>n<1024?n+' B':n<1048576?(n/1024).toFixed(1)+' KB':n<1073741824?(n/1048576).toFixed(1)+' MB':(n/1073741824).toFixed(2)+' GB';
 const fmtT=t=>{const d=new Date(t);return d.toDateString()===new Date().toDateString()?d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:S.prefs.h24?false:undefined}):d.toLocaleDateString([],{day:'numeric',month:'short'})};
-const S={me:null,cs:new Map(),link:new Map(),cur:null,msgs:[],peer:null,sig:'connecting',sigTries:0,prefs:{theme:'system',maxMB:200,keep:true,ac:'teal',fs:'m',wp:'dots',enter:true,rcpt:true,typ:true,notif:false,showAv:true,stMode:'all',stList:[],bub:'round',dens:'cozy',h24:false,ts:true,rm:false,links:true,imgp:true,dbl:'',snd:false,vib:false,dnd:false,dndF:'22:00',dndT:'07:00',hidep:false,ask:false,defDis:0,auto:true,maxTry:6,sig:{host:'',port:'',path:'',secure:true},stHrs:24,stSpd:6,pubOn:false,lockMin:1,avs:true,keeparch:false,sort:'recent',dsp:true,asc:true,big:true,tbadge:false,blur:false,cfm:false,npv:false,saver:false,hidesw:false,vn:true,vnMax:120,stkSz:'m',poMode:'all',poList:[],likes:true,lseen:true,shareUser:true,tone:'chime',gtone:'pop',vol:60,lcard:true,limg:false,tabs:[],hc:false,bold:false,wake:false,remind:0,adImg:true,adAud:true,adVid:false,adDoc:false,reactN:false,dd:true},q:'',inv:new Map(),tx:new Map(),rx:new Map(),outq:[],busy:false,urls:{},mem:new Map(),ctq:'',sts:{mine:[],theirs:{}},posts:{mine:[],theirs:{}},flt:'all',tab:'chats',reply:null,edit:null,stat:{tx:0,rx:0},lock:null,locked:0};
+const S={me:null,cs:new Map(),link:new Map(),cur:null,msgs:[],peer:null,sig:'connecting',sigTries:0,prefs:{theme:'system',maxMB:200,keep:true,ac:'teal',fs:'m',wp:'dots',enter:true,rcpt:true,typ:true,notif:false,showAv:true,stMode:'all',stList:[],bub:'round',dens:'cozy',h24:false,ts:true,rm:false,links:true,imgp:true,dbl:'',snd:false,vib:false,dnd:false,dndF:'22:00',dndT:'07:00',hidep:false,ask:false,defDis:0,auto:true,maxTry:6,sig:{host:'',port:'',path:'',secure:true},stHrs:24,stSpd:6,pubOn:false,lockMin:1,avs:true,keeparch:false,sort:'recent',dsp:true,asc:true,big:true,tbadge:false,blur:false,cfm:false,npv:false,saver:false,hidesw:false,vn:true,vnMax:120,stkSz:'m',poMode:'all',poList:[],likes:true,lseen:true,shareUser:true,tone:'chime',gtone:'pop',vol:60,lcard:true,limg:false,tabs:[],hc:false,bold:false,wake:false,remind:0,adImg:true,adAud:true,adVid:false,adDoc:false,reactN:false,dd:true,relay:true,relaySrv:true},q:'',inv:new Map(),tx:new Map(),rx:new Map(),outq:[],busy:false,urls:{},mem:new Map(),ctq:'',sts:{mine:[],theirs:{}},posts:{mine:[],theirs:{}},flt:'all',tab:'chats',reply:null,edit:null,stat:{tx:0,rx:0},lock:null,locked:0};
 const IMG=['image/png','image/jpeg','image/gif','image/webp'],AUD=['audio/webm','audio/ogg','audio/mp4','audio/mpeg','audio/wav','audio/x-m4a'],EMO=/^(?:\p{Extended_Pictographic}[\u{1F3FB}-\u{1F3FF}\uFE0F\u200D]*\s*){1,3}$/u;
 function toast(t,act,label){const e=h('div',{class:'toast',role:'status'},t,act?h('button',{onclick:()=>{act();e.remove()}},label||'OK'):null);$('#toasts').append(e);setTimeout(()=>e.remove(),act?12000:4500)}
 function modal(title,body,btns){return new Promise(res=>{const d=h('dialog',{},h('h3',{},title),body,h('div',{class:'row end'},btns.map(([l,v,c])=>h('button',{class:'btn '+(c||''),onclick:()=>d.close(v)},l))));d.addEventListener('close',()=>{d.remove();res(d.returnValue||null)});document.body.append(d);d.showModal()})}
@@ -287,6 +287,13 @@ async function onData(c,d){
  case'ginfo':{const g=typeof d.gid==='string'?gOf(d.gid):null;if(g&&g.host===id&&!isHost(g))applyInfo(d,id);return}
  case'gkick':{const g=typeof d.gid==='string'?gOf(d.gid):null;if(g&&g.host===id&&!g.sys){g.removed=1;saveC(g);renderList();if(S.cur===g.id)renderHead();toast('You were removed from '+g.name)}return}
  case'gdel':{const g=typeof d.gid==='string'?gOf(d.gid):null;if(g&&g.host===id&&!g.sys){g.removed=1;g.name=g.name+' (deleted)';saveC(g);renderList();if(S.cur===g.id)renderHead();toast(g.name)}return}
+ case'ginvq':{const g=typeof d.gid==='string'?gOf(d.gid):null;if(g&&isHost(g)&&g.members.some(x=>x.id===id)&&(!g.invAdmin||isAdmin(g,id)))gSendTo(id,{v:1,t:'ginv',gid:g.gid,code:gInviteCode(g)});return}
+ case'ginv':{const g=typeof d.gid==='string'?gOf(d.gid):null;if(g&&g.host===id&&typeof d.code==='string'&&d.code.length<80)groupInvite(g,d.code);return}
+ case'gset':{const g=typeof d.gid==='string'?gOf(d.gid):null;if(g&&isHost(g)&&isAdmin(g,id)&&g.members.some(x=>x.id===id)&&d.set&&typeof d.set==='object'){applySet(g,d.set,id===g.host);saveC(g);gBroadcastInfo(g);if(S.cur===g.id)renderHead()}return}
+ case'rup':if(isRelay())rStore(id,d);return;
+ case'rupl':if(isRelay())rList(id,d);return;
+ case'rdn':return onRdn(id,d);
+ case'rdnl':return onRdnl(id,d);
  case'gleave':{const g=typeof d.gid==='string'?gOf(d.gid):null;if(g&&isHost(g)){g.members=g.members.filter(x=>x.id!==id);saveC(g);gBroadcastInfo(g);if(S.cur===g.id)renderHead()}return}
  case'prof':return onProf(id,d);
  case'typ':if(S.prefs.typ){lk(id).typ=d.on?Date.now():0;renderHead();renderList();setTimeout(()=>{renderHead();renderList()},5200)}return;
@@ -344,7 +351,7 @@ function renderList(){const q=$('#sq').value.toLowerCase(),f=S.flt;
  if(a.length<=1&&!q&&f==='all')$('#cl').append(h('div',{class:'empty'},'No contacts yet. Tap + to create an invitation or enter one. You only pair once.'))}
 function renderHead(){const ct=S.cs.get(S.cur);if(!ct)return;const L=lk(ct.id),self=ct.id==='self';
  $('#cn').textContent=ct.name;$('#cav').replaceChildren(ct.av?h('img',{src:ct.av,alt:''}):initial(ct.name));
- $('#inp').placeholder=ct.grp&&!gCanPost(ct)?'Only hosts can post here':'Message';$('#cst').textContent=ct.grp?grpStatus(ct):self?'Local notes · not synced':typingNow(ct.id)?'typing…':(ct.blocked?'Blocked':ct.paused?'Disconnected by you':presence(ct,L));
+ $('#inp').placeholder=ct.grp&&!gCanPost(ct)?'Only admins can send messages here':'Message';$('#cst').textContent=ct.grp?grpStatus(ct):self?'Local notes · not synced':typingNow(ct.id)?'typing…':(ct.blocked?'Blocked':ct.paused?'Disconnected by you':presence(ct,L));
  $('#rcb').style.display=self||ct.grp||L.state==='online'?'none':''}
 async function openChat(id){S.cur=id;S.q='';$('#cs').value='';revoke();S.reply=S.edit=null;showRb();purge();const ct=S.cs.get(id);ct.unread=0;saveC(ct);
  S.msgs=(await dbChat(id)).sort((a,b)=>a.ts-b.ts);
@@ -392,7 +399,7 @@ async function react(m,e){const ne=(m.rx||{}).me===e?'':e;await upd(m,{rx:{...m.
 function showRb(){const r=$('#rb'),m=S.reply||S.edit;if(!m){r.style.display='none';return}
  r.style.display='flex';r.replaceChildren(h('div',{class:'q'},h('b',{},S.edit?'Editing message':'Replying to '+(m.dir==='out'?'yourself':(S.cs.get(m.chat)||{}).name)),h('span',{},snip(m))),h('button',{class:'ib','aria-label':'Cancel',onclick:()=>{if(S.edit){$('#inp').value='';autosize()}S.reply=S.edit=null;showRb()}},'✕'))}
 /* ---------- sending ---------- */
-async function sendMsg(){const t=$('#inp').value.trim();if(!t||!S.cur)return;{const gg=S.cs.get(S.cur);if(gg&&gg.grp&&!gCanPost(gg))return toast(gg.removed?'You were removed from this group.':'Only hosts can post here.')}if(t.length>8000)return toast('Message too long (8000 characters max).');
+async function sendMsg(){const t=$('#inp').value.trim();if(!t||!S.cur)return;{const gg=S.cs.get(S.cur);if(gg&&gg.grp&&!gCanPost(gg))return toast(gg.removed?'You were removed from this group.':'Only admins can send messages here.')}if(t.length>8000)return toast('Message too long (8000 characters max).');
  $('#inp').value='';autosize();$('#em').style.display='none';
  if(S.edit){const m=S.edit,c=lk(m.chat).conn;S.edit=null;showRb();if(m.chat!=='self'&&m.st!=='local'&&c&&c.open)c.send({v:1,t:'edt',id:wid(m),txt:t});await upd(m,{txt:t,ed:1});return}
  const m={id:rnd(16),chat:S.cur,dir:'out',ts:Date.now(),txt:t,st:S.cur==='self'?'note':'local'};
@@ -502,6 +509,7 @@ async function renderSet(){const v=$('#v-set'),est=navigator.storage&&navigator.
  sec('Auto-download',h('p',{},'Used when “Ask before accepting incoming files” is on: these types are still accepted automatically.'),tg('Photos','adImg'),tg('Audio and voice notes','adAud'),tg('Videos','adVid'),tg('Documents and other files','adDoc'),tg('Drag and drop files onto a chat (desktop)','dd')),
  sec('Link previews',tg('Show a link card above links','lcard',()=>S.cur&&renderMsgs()),tg('Also preview image links (contacts the linked site)','limg',()=>S.cur&&renderMsgs()),h('p',{},'Cards show the site and address only. Page titles are not fetched because browsers block cross-site reads.')),
  sec('Backup reminders',...sel('Remind me to export a backup','remind',[[0,'Never'],[7,'Every week'],[30,'Every month']])),
+ sec('Offline delivery',tg('Use the SyncBee relay so contacts get my posts and status while I am offline','relay',()=>rUpload(true)),TEAM.host&&TEAM.host===S.me.id?tg('This device stores posts and status for other people (relay)','relaySrv'):null,h('p',{},'The relay is the admin device of the default group. It can read the posts and statuses passing through it, keeps up to 10 statuses and 20 posts per person, and hands them to the contacts you allow, even when you are offline. It works only while that device is online. Turn this off to send only to contacts who are online.')),
  sec('Connection service',h('p',{},'PeerJS Cloud (0.peerjs.com) – status: '+SIGT[S.sig]+(S.sigNote?' – '+S.sigNote:'')),h('button',{class:'btn',onclick:()=>{S.sigTries=0;clearTimeout(S.sigTimer);S.sigTimer=0;startPeer()}},'Restart connection'),h('button',{class:'btn',onclick:()=>navigator.clipboard.writeText(S.dbg.join('\n')).then(()=>toast('Copied'),()=>toast('Copy failed'))},'Copy diagnostics'),h('p',{},'Diagnostics:'),h('pre',{id:'dbg',class:'mono',style:'white-space:pre-wrap;max-height:160px;overflow:auto'},S.dbg.join('\n'))),
  sec('Relay (TURN, optional)',h('p',{},'Needed when your phone and PC are on different or restricted networks. Use your own TURN server; the credential stays on this device (and in backups).'),h('textarea',{rows:4,placeholder:'One or more TURN URLs, separated by spaces, commas or new lines','aria-label':'TURN URLs',style:'margin-bottom:6px',onchange:e=>setTurn('url',e.target.value)},(S.prefs.turn||{}).url||''),h('input',{placeholder:'Username','aria-label':'TURN username',value:(S.prefs.turn||{}).user||'',onchange:e=>setTurn('user',e.target.value)}),h('input',{placeholder:'Credential',type:'password','aria-label':'TURN credential',value:(S.prefs.turn||{}).cred||'',onchange:e=>setTurn('cred',e.target.value)})),
  sec('Advanced connection',tg('Reconnect automatically (turn off to save battery)','auto'),...sel('Stop retrying after','maxTry',[[3,'3 attempts'],[6,'6 attempts'],[10,'10 attempts']]),h('p',{},'Custom PeerJS server (leave the host empty for the free PeerJS Cloud). Restart the connection after changing.'),
@@ -518,7 +526,7 @@ async function renderSet(){const v=$('#v-set'),est=navigator.storage&&navigator.
   det('Offline messages','Messages are delivered only while both devices are connected. Anything written while the contact is offline stays on your device marked “Saved locally” and is sent automatically when the link returns. There is no server-side mailbox.'),
   det('Privacy and security','Chats and files travel directly between devices over WebRTC, encrypted in transit (DTLS). The PeerJS signaling service sees device IDs and connection metadata such as IP addresses, not message content. Google’s public STUN server only reveals your public address and relays nothing. This is not a full end-to-end identity system: your protection against impostors is the security code you compared when pairing plus a per-contact secret checked on every reconnect. Leaving to UtiliX closes live connections; they resume when you return.')),
  sec('About',h('p',{},'SyncBee v'+VER+' · Connect. Chat. Share.'),h('p',{},'Powered by ',h('a',{href:UTIL,style:'color:var(--ac)'},'UtiliX')))];paintSet(v,cards)}
-const savePrefs=()=>safe(dbPut('kv',S.prefs,'prefs'));
+const savePrefs=()=>safe(dbPut('kv',S.prefs,'prefs')).then(r=>{rUploadSoon();return r});
 async function exportB(){safe(dbPut('kv',Date.now(),'lastBackup'));const d={app:'connectly',v:1,at:Date.now(),me:S.me,prefs:S.prefs,contacts:[...S.cs.values()],msgs:await dbAll('msgs')},u=URL.createObjectURL(new Blob([JSON.stringify(d)],{type:'application/json'})),a=h('a',{href:u,download:'syncbee-backup-'+new Date().toISOString().slice(0,10)+'.json'});document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),6e4)}
 function validB(d){return d&&d.app==='connectly'&&d.v===1&&Array.isArray(d.contacts)&&Array.isArray(d.msgs)&&d.contacts.every(c=>c&&typeof c.id==='string'&&c.id.length<80&&typeof c.name==='string'&&(c.id==='self'||c.grp||typeof c.key==='string'))&&d.msgs.every(m=>m&&typeof m.id==='string'&&typeof m.chat==='string'&&(m.dir==='in'||m.dir==='out')&&Number.isFinite(m.ts)&&(typeof m.txt==='string'||(m.file&&typeof m.file.name==='string'&&Number.isFinite(m.file.size))))&&(!d.me||/^cly-[a-z2-7]{20}$/.test(d.me.id))}
 async function importB(f){if(!f)return;let d;try{d=JSON.parse(await f.text())}catch{return toast('That file is not valid JSON.')}
@@ -567,12 +575,12 @@ async function purge(){for(const c of S.cs.values()){if(!c.dis)continue;const li
 /* status */
 const DAY=864e5,stAllowed=id=>{const m=S.prefs.stMode,l=S.prefs.stList||[];return m==='all'||(m==='except'?!l.includes(id):l.includes(id))};
 function stPrune(){const n=Date.now();S.sts.mine=S.sts.mine.filter(x=>n<(x.ex||x.ts+DAY));for(const k in S.sts.theirs){S.sts.theirs[k]=S.sts.theirs[k].filter(x=>n<(x.ex||x.ts+DAY));if(!S.sts.theirs[k].length||!S.cs.has(k))delete S.sts.theirs[k]}}
-const stSave=()=>safe(dbPut('kv',S.sts,'st'));
+const stSave=()=>safe(dbPut('kv',S.sts,'st')).then(r=>{rUploadSoon();return r});
 function stSendTo(id){const c=lk(id).conn;if(!c||!c.open)return;const ok=stAllowed(id)?S.sts.mine:[];for(const x of ok)c.send({v:1,t:'st',...stWire(x)});c.send({v:1,t:'stl',ids:ok.map(x=>x.id)})}
 function onSt(id,d){if(typeof d.id!=='string'||d.id.length>40||!['text','img'].includes(d.k)||typeof d.txt!=='string'||!Number.isFinite(d.ts))return;
  if(d.k==='img'&&!(typeof d.img==='string'&&d.img.startsWith('data:image/jpeg;base64,')&&d.img.length<400000))return;
  const a=S.sts.theirs[id]||(S.sts.theirs[id]=[]);if(a.some(x=>x.id===d.id))return;
- a.push({id:d.id,ts:Math.min(d.ts,Date.now()),k:d.k,txt:d.txt.slice(0,700),bg:/^#[0-9a-f]{6}$/i.test(d.bg)?d.bg:'#0f9d8f',img:d.k==='img'?d.img:'',ex:(Number.isFinite(d.ex)&&d.ex>d.ts&&d.ex<=d.ts+DAY)?d.ex:0,seen:false});a.sort((x,y)=>x.ts-y.ts);if(a.length>20)a.splice(0,a.length-20);stSave();if(S.tab==='status')renderStatus()}
+ a.push({id:d.id,ts:Math.min(d.ts,Date.now()),k:d.k,txt:d.txt.slice(0,700),bg:/^#[0-9a-f]{6}$/i.test(d.bg)?d.bg:'#0f9d8f',img:d.k==='img'?d.img:'',ex:(Number.isFinite(d.ex)&&d.ex>d.ts&&d.ex<=d.ts+DAY)?d.ex:0,seen:false,rel:d.rel?1:0});a.sort((x,y)=>x.ts-y.ts);if(a.length>20)a.splice(0,a.length-20);stSave();if(S.tab==='status')renderStatus()}
 async function postStatus(x){S.sts.mine.push(x);await stSave();S.cs.forEach(c=>c.id!=='self'&&stAllowed(c.id)&&stSendTo(c.id));renderStatus()}
 async function addStatus(){const cols=['#0f9d8f','#2f7de1','#7c5cd6','#d6457a','#d98a1c','#3a4a49'];let bg=cols[0],img=null;
  const ta=h('textarea',{rows:4,maxlength:700,placeholder:'Type a status','aria-label':'Status text'}),sw=h('div',{class:'sw'}),pv=h('p',{},''),pubCb=h('input',{type:'checkbox',style:'width:auto',disabled:!S.prefs.pubOn,title:S.prefs.pubOn?'':'Turn on Public status first'});
@@ -611,7 +619,7 @@ function renderPanel(){const t=S.pt,tabs=h('div',{class:'tabs',style:'padding:0 
  if(t==='emoji')EMOJI.forEach(e=>body.append(h('button',{type:'button','aria-label':e,class:'ib',style:'display:inline-grid;font-size:22px',onclick:()=>{const i=$('#inp');i.setRangeText(e,i.selectionStart,i.selectionEnd,'end');autosize();i.focus()}},e)));
  else if(t==='stk')stkBody(body);else gifBody(body);$('#em').replaceChildren(tabs,body)}
 $('#emb').onclick=()=>{const e=$('#em');if(e.style.display==='block')e.style.display='none';else{e.style.display='block';renderPanel()}};
-setInterval(()=>{purge();stPrune();if(S.tab==='status')renderStatus()},60000);
+setInterval(()=>{rPrune();purge();stPrune();if(S.tab==='status')renderStatus()},60000);
 /* ---------- v1.2 extras ---------- */
 const rerender=()=>{theme();renderList();if(S.cur)renderMsgs();if(S.tab==='status')renderStatus()};
 const dsep=ts=>{if(!S.prefs.dsp)return document.createDocumentFragment();const d=new Date(ts),n=new Date(),y=new Date(Date.now()-864e5);return h('div',{class:'dsep'},d.toDateString()===n.toDateString()?'Today':d.toDateString()===y.toDateString()?'Yesterday':d.toLocaleDateString([],{day:'numeric',month:'long',year:'numeric'}))};
@@ -664,11 +672,11 @@ function showLock(){if(S.locked||!S.lock)return;S.locked=1;const i=h('input',{ty
  i.addEventListener('keydown',e=>{if(e.key==='Enter')tryU()});document.body.append(ov);i.focus()}
 document.addEventListener('visibilitychange',()=>{document.body.style.filter=document.hidden&&S.prefs.hidesw?'blur(24px)':'';if(document.hidden){S.hid=Date.now();return}if(S.lock&&(S.prefs.lockMin||0)*6e4<=Date.now()-(S.hid||0))showLock()});
 /* ---------- posts, stickers, GIFs, voice notes ---------- */
-const poSave=()=>safe(dbPut('kv',S.posts,'po')),poAllowed=id=>{const m=S.prefs.poMode,l=S.prefs.poList||[];return m==='all'||(m==='except'?!l.includes(id):l.includes(id))};
+const poSave=()=>safe(dbPut('kv',S.posts,'po')).then(r=>{rUploadSoon();return r}),poAllowed=id=>{const m=S.prefs.poMode,l=S.prefs.poList||[];return m==='all'||(m==='except'?!l.includes(id):l.includes(id))};
 function poSendTo(id){const c=lk(id).conn;if(!c||!c.open)return;const ok=poAllowed(id)?S.posts.mine.slice(-30):[];for(const p of ok)c.send({v:1,t:'po',id:p.id,ts:p.ts,txt:p.txt||'',img:p.img||''});c.send({v:1,t:'pol',ids:ok.map(p=>p.id)})}
 function plSync(id){const c=lk(id).conn;if(!c||!c.open)return;for(const p of S.posts.theirs[id]||[])if(p.liked)c.send({v:1,t:'pl',id:p.id,on:1})}
 function onPo(id,d){if(typeof d.id!=='string'||d.id.length>40||typeof d.txt!=='string'||d.txt.length>1000||!Number.isFinite(d.ts))return;const img=typeof d.img==='string'&&d.img.startsWith('data:image/jpeg;base64,')&&d.img.length<500000?d.img:'';
- const a=S.posts.theirs[id]||(S.posts.theirs[id]=[]);if(a.some(x=>x.id===d.id))return;if(!d.txt&&!img)return;a.push({id:d.id,ts:Math.min(d.ts,Date.now()),txt:d.txt,img,liked:false});a.sort((x,y)=>x.ts-y.ts);if(a.length>50)a.splice(0,a.length-50);poSave();renderPosts()}
+ const a=S.posts.theirs[id]||(S.posts.theirs[id]=[]);if(a.some(x=>x.id===d.id))return;if(!d.txt&&!img)return;a.push({id:d.id,ts:Math.min(d.ts,Date.now()),txt:d.txt,img,liked:false,rel:d.rel?1:0});a.sort((x,y)=>x.ts-y.ts);if(a.length>50)a.splice(0,a.length-50);poSave();renderPosts()}
 async function addPost(){const ta=h('textarea',{rows:4,maxlength:1000,placeholder:'What would you like to share?','aria-label':'Post text'});let img='';const pv=h('p',{});
  const fi=h('input',{type:'file',accept:'image/*','aria-label':'Post photo',onchange:async e=>{const f=e.target.files[0];if(!f)return;img=await shrink(f,S.prefs.saver?600:900,S.prefs.saver?.5:.72,250000)||'';pv.textContent=img?'Photo attached.':'Could not use that image.'}});
  const v=await modal('New post',h('div',{},ta,h('p',{},'Photo (optional):'),fi,pv,h('p',{},'Visible to the contacts allowed in Posts privacy, delivered while they are online with you. It stays until you delete it.')),[['Cancel','no'],['Post','ok','pri']]);
@@ -755,7 +763,7 @@ async function scanQr(){if(!('BarcodeDetector' in window))return toast('This bro
  const dlg=modal('Scan QR code',h('div',{},vid,h('p',{},'Point the camera at the other device’s QR code.')),[['Cancel','no']]);
  const val=await Promise.race([found,dlg.then(()=>null)]);stop=1;st.getTracks().forEach(t=>t.stop());const open=document.querySelectorAll('dialog[open]');if(open.length)open[open.length-1].close('no');if(val)joinAny(val)}
 /* settings in vertical tabs */
-const CATS=[['Account',['Profile','Account']],['General',['Appearance','Chat display','Lists and display','Accessibility']],['Chats',['Chats','Link previews']],['Notifications',['Notifications','Sounds']],['Privacy',['Privacy and security','Last seen and online','Screen privacy','Blocked contacts']],['Status and posts',['Status','Posts']],['Media and storage',['Media and voice','Auto-download','Files','Storage and backup','Backup reminders']],['Connection',['Connection service','Relay (TURN, optional)','Advanced connection','Pairing','Contacts']],['Help and about',['Help','About']]];
+const CATS=[['Account',['Profile','Account']],['General',['Appearance','Chat display','Lists and display','Accessibility']],['Chats',['Chats','Link previews']],['Notifications',['Notifications','Sounds']],['Privacy',['Privacy and security','Last seen and online','Screen privacy','Blocked contacts']],['Status and posts',['Status','Posts','Offline delivery']],['Media and storage',['Media and voice','Auto-download','Files','Storage and backup','Backup reminders']],['Connection',['Connection service','Relay (TURN, optional)','Advanced connection','Pairing','Contacts']],['Help and about',['Help','About']]];
 function paintSet(v,cards){const cur=CATS.some(c=>c[0]===S.setTab)?S.setTab:'Account',show=cards.filter(c=>{const t=c.querySelector('h2').textContent,cat=CATS.find(x=>x[1].includes(t));return (cat?cat[0]:'Help and about')===cur});
  v.replaceChildren(h('div',{class:'sx'},h('div',{class:'sn',role:'tablist','aria-label':'Settings sections'},CATS.map(([n])=>h('button',{role:'tab','aria-selected':n===cur?'true':'false',class:n===cur?'on':'',onclick:()=>{S.setTab=n;paintSet(v,cards);v.scrollTop=0}},n))),h('div',{class:'sc2'},show)))}
 /* drag and drop files (desktop) */
@@ -765,22 +773,22 @@ function paintSet(v,cards){const cur=CATS.some(c=>c[0]===S.setTab)?S.setTab:'Acc
  ch.addEventListener('dragleave',e=>{if(!ch.contains(e.relatedTarget))dz.style.display='none'});
  ch.addEventListener('drop',e=>{dz.style.display='none';if(!S.prefs.dd||!S.cur||!hasFiles(e))return;e.preventDefault();queueFiles([...e.dataTransfer.files])})}
 /* ---------- groups, communities and the default group ---------- */
-// The default group needs a host: set TEAM.host to the Device ID (Settings > Account) of the device that will run it.
-const TEAM={host:'',name:'MirCodeStudio Team'};
-const gOf=id=>S.cs.get('g:'+id),isHost=g=>g.host===S.me.id,gCanPost=g=>!g.removed&&(!g.ann||isHost(g)),GSTM={local:'Saved locally · waiting for host',sent:'Sent to host',acked:'Stored on host',failed:'Not sent'};
+// TEAM.host is the admin and host device of the default group (its Device ID is shown in Settings > Account). TEAM.admins lists extra admin Device IDs.
+const TEAM={host:'cly-3vc4rypnk5662cpvjitr',admins:[],name:'MirCodeStudio Team'};
+const gOf=id=>S.cs.get('g:'+id),isHost=g=>g.host===S.me.id,isAdmin=(g,id)=>g.host===id||(g.admins||[]).includes(id)||(!!g.sys&&TEAM.admins.includes(id)),gCanPost=g=>!g.removed&&(!g.ann||isAdmin(g,S.me.id)),GSTM={local:'Saved locally · waiting for host',sent:'Sent to host',acked:'Stored on host',failed:'Not sent'};
 function gSendTo(id,o){const c=lk(id).conn;if(c&&c.open){try{c.send(o);return true}catch{}}return false}
-const gInfoOf=g=>({v:1,t:'ginfo',gid:g.gid,name:g.name,hostName:g.hostName||'',ann:g.ann?1:0,comm:g.comm?1:0,parent:g.parent||'',sys:g.sys?1:0,subs:(g.subs||[]).map(x=>({gid:x.gid,name:x.name})),members:g.members.map(x=>({id:x.id,name:x.name,user:x.user||''}))});
+const gInfoOf=g=>({v:1,t:'ginfo',gid:g.gid,name:g.name,hostName:g.hostName||'',ann:g.ann?1:0,comm:g.comm?1:0,parent:g.parent||'',sys:g.sys?1:0,subs:(g.subs||[]).map(x=>({gid:x.gid,name:x.name})),members:g.members.map(x=>({id:x.id,name:x.name,user:x.user||''})),admins:g.admins||[],desc:g.desc||'',invAdmin:g.invAdmin?1:0,hist:g.hist===undefined?50:g.hist,dis:g.dis||0});
 const gBroadcastInfo=g=>{for(const x of g.members)gSendTo(x.id,gInfoOf(g))};
 function grpStatus(g){if(g.removed)return 'You are no longer a member';if(!g.host)return 'Default group · host not configured yet';if(g.pending&&!isHost(g))return 'Joining… the host must be online';return (g.comm?'Community':'Group')+' · '+(g.members.length+1)+' members · host: '+(isHost(g)?'you':(g.hostName||'host')+(lk(g.host).state==='online'?'':' (offline)'))}
 function applyInfo(i,hostId){if(!i||typeof i.gid!=='string'||i.gid.length>20)return null;let g=gOf(i.gid);if(!g){g={id:'g:'+i.gid,grp:1,gid:i.gid,unread:0,created:Date.now(),members:[],subs:[],inv:{}};S.cs.set(g.id,g)}
- if(g.host&&g.host!==hostId)return g;g.host=hostId;g.hostName=String(i.hostName||g.hostName||'').slice(0,40);g.name=String(i.name||g.name||'Group').slice(0,40);g.ann=i.ann?1:0;g.comm=i.comm?1:0;g.parent=typeof i.parent==='string'?i.parent.slice(0,20):'';g.sys=i.sys?1:0;g.pending=0;g.removed=0;
+ if(g.host&&g.host!==hostId)return g;g.host=hostId;g.hostName=String(i.hostName||g.hostName||'').slice(0,40);g.name=String(i.name||g.name||'Group').slice(0,40);g.ann=i.ann?1:0;g.comm=i.comm?1:0;g.parent=typeof i.parent==='string'?i.parent.slice(0,20):'';g.sys=i.sys?1:0;g.pending=0;g.removed=0;g.admins=Array.isArray(i.admins)?i.admins.slice(0,50).map(x=>String(x).slice(0,40)):[];g.desc=String(i.desc||'').slice(0,200);g.invAdmin=i.invAdmin?1:0;g.hist=[0,50,300].includes(i.hist)?i.hist:50;g.dis=[0,86400,604800].includes(i.dis)?i.dis:0;
  g.subs=Array.isArray(i.subs)?i.subs.slice(0,30).map(x=>({gid:String(x.gid).slice(0,20),name:String(x.name).slice(0,40)})):[];
  g.members=Array.isArray(i.members)?i.members.slice(0,500).map(x=>({id:String(x.id).slice(0,40),name:String(x.name||'').slice(0,40),user:/^[a-z0-9_]{3,20}$/.test(x.user)?x.user:''})):[];saveC(g);renderList();if(S.cur===g.id)renderHead();return g}
 async function newGroup(comm,parent){const nm=await ask(comm?'New community':parent?'New group in this community':'New group','Name','',40);if(!nm)return;
  const gid=rnd(12).slice(0,10),g={id:'g:'+gid,grp:1,gid,name:nm,host:S.me.id,hostName:S.me.name,ann:comm?1:0,comm:comm?1:0,parent:parent||'',subs:[],sys:0,members:[],inv:{},unread:0,created:Date.now()};
  S.cs.set(g.id,g);await saveC(g);if(parent){const p=gOf(parent);if(p){p.subs.push({gid,name:nm});await saveC(p);gBroadcastInfo(p)}}renderList();openChat(g.id);await groupInvite(g)}
 function gInviteCode(g){const tok=rnd(10);g.inv=g.inv||{};for(const k in g.inv)if(g.inv[k]<Date.now())delete g.inv[k];g.inv[tok]=Date.now()+7*864e5;saveC(g);return 'cly1g-'+S.me.id+'-'+g.gid+'-'+tok}
-async function groupInvite(g){const code=gInviteCode(g),link=inviteLink(code);await modal('Invite to '+g.name,h('div',{},h('p',{},'Share this code or QR. It works for many people for 7 days. Keep SyncBee open on this device: it stores the '+(g.comm?'community':'group')+'’s messages for members who are offline.'),h('div',{style:'text-align:center'},qrImg(link)),h('p',{class:'mono'},code),h('div',{class:'row'},h('button',{class:'btn',onclick:()=>navigator.clipboard.writeText(link).then(()=>toast('Link copied'),()=>toast('Copy failed'))},'Copy link'))),[['Close','ok','pri']])}
+async function groupInvite(g,given){const code=given||gInviteCode(g),link=inviteLink(code);await modal('Invite to '+g.name,h('div',{},h('p',{},'Share this code or QR. It works for many people for 7 days. Keep SyncBee open on this device: it stores the '+(g.comm?'community':'group')+'’s messages for members who are offline.'),h('div',{style:'text-align:center'},qrImg(link)),h('p',{class:'mono'},code),h('div',{class:'row'},h('button',{class:'btn',onclick:()=>navigator.clipboard.writeText(link).then(()=>toast('Link copied'),()=>toast('Copy failed'))},'Copy link'))),[['Close','ok','pri']])}
 function joinGroup(code,via){const m=/^cly1g-(cly-[a-z2-7]{20})-([a-z2-7]{10})-([a-z2-7]{10})$/.exec(String(code).trim().toLowerCase());if(!m)return toast('That group invitation is not valid.');
  if(m[1]===S.me.id)return toast('This is your own group.');if(gOf(m[2]))return toast('You are already in this group.');if(!S.peer||!S.peer.open)return toast('Connection service is not online yet.');
  const c=S.peer.connect(m[1],{reliable:true});c._gj={gid:m[2],tok:m[3],via:via||''};onConn(c,true);toast('Joining…');setTimeout(()=>{if(!c._gdone){try{c.close()}catch{}toast('Could not reach the group host. It may be offline or the invitation expired.')}},25000)}
@@ -800,7 +808,7 @@ async function onGjoined(c,d){if(!c._gj||d.gid!==c._gj.gid||!d.info||typeof d.in
 async function onGmsg(c,d,id){if(typeof d.gid!=='string'||typeof d.id!=='string'||d.id.length>64)return;const g=gOf(d.gid);if(!g)return;
  const valid=(typeof d.txt==='string'&&d.txt.length<=8000)||(typeof d.stk==='string'&&d.stk.length<140000&&/^data:image\/(png|webp|jpeg);base64,/.test(d.stk));if(!valid)return;
  const fill=m=>{if(d.stk){m.stk=d.stk;m.txt=''}else m.txt=d.txt;if(d.re&&typeof d.re.t==='string'&&(d.re.w==='me'||d.re.w==='them'))m.re={t:d.re.t.slice(0,100),who:d.re.w==='me'?'them':'me'};if(d.fw===1)m.fw=1};
- if(isHost(g)){const mem=g.members.find(x=>x.id===id);if(!mem||g.ann)return;const key=id+':'+d.id;gSendTo(id,{v:1,t:'gack',gid:g.gid,id:d.id});if(await dbGet('msgs',key))return;
+ if(isHost(g)){const mem=g.members.find(x=>x.id===id);if(!mem||(g.ann&&!isAdmin(g,id)))return;const key=id+':'+d.id;gSendTo(id,{v:1,t:'gack',gid:g.gid,id:d.id});if(await dbGet('msgs',key))return;
   const m={id:key,mid:d.id,chat:g.id,dir:'in',from:id,fn:mem.name,ts:Date.now(),st:'recv'};fill(m);await incoming(m);const w=gWire(m);for(const x of g.members)if(x.id!==id)gSendTo(x.id,w)}
  else if(g.host===id&&typeof d.from==='string'&&d.from.length<=40){const key=d.from+':'+d.id;gSendTo(id,{v:1,t:'gseen',gid:g.gid,ts:d.ts});if(d.from===S.me.id||await dbGet('msgs',key))return;
   const m={id:key,mid:d.id,chat:g.id,dir:'in',from:d.from,fn:String(d.fn||'Member').slice(0,40),ts:Number.isFinite(d.ts)?d.ts:Date.now(),st:'recv'};fill(m);await incoming(m)}}
@@ -812,27 +820,70 @@ async function gSend(m){const g=S.cs.get(m.chat);if(!g)return;
  try{c.send(w);if(m.st==='local'||m.st==='failed')await upd(m,{st:'sent'})}catch{await upd(m,{st:'failed'})}}
 async function gOnAdopt(id){for(const g of [...S.cs.values()]){if(!g.grp||g.removed)continue;
  if(g.host===id&&!isHost(g)){const ms=(await dbChat(g.id)).filter(m=>m.dir==='out'&&!m.del&&!['acked'].includes(m.st)).sort((a,b)=>a.ts-b.ts);for(const m of ms)await gSend(m)}
- else if(isHost(g)&&g.members.some(x=>x.id===id)){gSendTo(id,gInfoOf(g));await gDeliver(g,id)}}}
+ else if(isHost(g)&&g.members.some(x=>x.id===id)){gSendTo(id,gInfoOf(g));await gDeliver(g,id)}}
+ if(TEAM.host&&id===TEAM.host)rUpload(true);if(isRelay())rSyncTo(id,true)}
 async function gDeliver(g,id){const mem=g.members.find(x=>x.id===id);if(!mem)return;const all=(await dbChat(g.id)).filter(m=>!m.del&&m.from!==id&&(m.dir==='in'||m.dir==='out')).sort((a,b)=>a.ts-b.ts).filter(m=>m.ts>(mem.seen||0));
- for(const m of (mem.seen?all.slice(-300):all.slice(-50))){if(!m.from)m.from=S.me.id;if(!m.fn)m.fn=S.me.name;gSendTo(id,gWire(m))}}
+ for(const m of (mem.seen?all.slice(-300):(g.hist===undefined?all.slice(-50):g.hist?all.slice(-g.hist):[]))){if(!m.from)m.from=S.me.id;if(!m.fn)m.fn=S.me.name;gSendTo(id,gWire(m))}}
 async function groupInfo(g){const host=isHost(g);
- const mem=h('div',{style:'max-height:36vh;overflow:auto'},h('div',{class:'row'},h('span',{class:'grow'},(g.hostName||'Host')+(host?' (you)':'')),h('span',{class:'sig'},'Host')),...g.members.map(x=>h('div',{class:'row'},h('span',{class:'grow'},x.name+(x.user?' @'+x.user:'')+(x.id===S.me.id?' (you)':'')),host?h('button',{class:'btn danger',onclick:async()=>{if(await confirmM('Remove '+x.name+'?','They stop receiving messages from this '+(g.comm?'community':'group')+'.','Remove',1)){g.members=g.members.filter(y=>y!==x);await saveC(g);gSendTo(x.id,{v:1,t:'gkick',gid:g.gid});gBroadcastInfo(g);toast('Removed.')}}},'Remove'):null)));
+ const mem=h('div',{style:'max-height:36vh;overflow:auto'},h('div',{class:'row'},h('span',{class:'grow'},(g.hostName||'Host')+(host?' (you)':'')),h('span',{class:'sig'},'Admin (host)')),...g.members.map(x=>h('div',{class:'row'},h('span',{class:'grow'},x.name+(x.user?' @'+x.user:'')+(isAdmin(g,x.id)?' · admin':'')+(x.id===S.me.id?' (you)':'')),host?h('button',{class:'btn',onclick:async()=>{g.admins=g.admins||[];if(g.admins.includes(x.id))g.admins=g.admins.filter(y=>y!==x.id);else g.admins.push(x.id);await saveC(g);gBroadcastInfo(g);toast('Updated.')}},(g.admins||[]).includes(x.id)?'Remove admin':'Make admin'):null,host?h('button',{class:'btn danger',onclick:async()=>{if(await confirmM('Remove '+x.name+'?','They stop receiving messages from this '+(g.comm?'community':'group')+'.','Remove',1)){g.members=g.members.filter(y=>y!==x);await saveC(g);gSendTo(x.id,{v:1,t:'gkick',gid:g.gid});gBroadcastInfo(g);toast('Removed.')}}},'Remove'):null)));
  const subs=(g.subs||[]).map(x=>h('div',{class:'row'},h('span',{class:'grow'},x.name),gOf(x.gid)?h('button',{class:'btn',onclick:()=>openChat('g:'+x.gid)},'Open'):h('button',{class:'btn pri',onclick:()=>joinSub(g,x)},'Join')));
- await modal(g.name,h('div',{},h('p',{},(g.comm?'Community':'Group')+' · host: '+(host?'you':(g.hostName||'host'))+(g.ann?' · only hosts can post':'')+(g.sys?' · default group, cannot be left':'')),h('p',{},'The host’s device stores messages and passes them to members when they come online. If the host is offline, new messages wait on the sender’s device.'),h('h3',{},'Members'),mem,...(g.comm?[h('h3',{},'Groups in this community'),...(subs.length?subs:[h('p',{},'None yet.')])]:[])),[['Close','ok','pri']])}
+ await modal(g.name,h('div',{},h('p',{},(g.comm?'Community':'Group')+' · host: '+(host?'you':(g.hostName||'host'))+(g.ann?' · only admins can send messages':'')+(g.sys?' · default group, cannot be left':'')),h('p',{},'The host’s device stores messages and passes them to members when they come online. If the host is offline, new messages wait on the sender’s device.'),h('h3',{},'Members'),mem,...(g.comm?[h('h3',{},'Groups in this community'),...(subs.length?subs:[h('p',{},'None yet.')])]:[])),[['Close','ok','pri']])}
 async function groupMenu(id,anchor){const g=S.cs.get(id);if(!g)return;const host=isHost(g);
- const v=await dropdown(anchor||$('#mnb'),[[(g.comm?'Community':'Group')+' info','info'],[g.pin?'Unpin':'Pin','pin'],[g.fav?'Remove from favorites':'Add to favorites','fv'],[g.mute?'Unmute':'Mute','mu'],[g.arch?'Unarchive':'Archive','ar'],['Starred','sr'],['Clear chat','cl'],...(host?[['Invite people','inv'],...(g.comm?[['Add a group to this community','sub']]:[]),...(!g.sys?[['Delete '+(g.comm?'community':'group'),'del','danger']]:[])]:[]),...(!host&&!g.sys?[['Leave','lv','danger']]:[])]);
+ const v=await dropdown(anchor||$('#mnb'),[[(g.comm?'Community':'Group')+' info','info'],[g.pin?'Unpin':'Pin','pin'],[g.fav?'Remove from favorites':'Add to favorites','fv'],[g.mute?'Unmute':'Mute','mu'],[g.arch?'Unarchive':'Archive','ar'],['Starred','sr'],['Clear chat','cl'],['Group settings','set'],...((host||!g.invAdmin||isAdmin(g,S.me.id))?[['Invite people','inv']]:[]),...(host?[...(g.comm?[['Add a group to this community','sub']]:[]),...(!g.sys?[['Delete '+(g.comm?'community':'group'),'del','danger']]:[])]:[]),...(!host&&!g.sys?[['Leave','lv','danger']]:[])]);
  if(v==='info')await groupInfo(g);
  if(['pin','mu','ar','fv'].includes(v)){const k={pin:'pin',mu:'mute',ar:'arch',fv:'fav'}[v];g[k]=!g[k];saveC(g);renderList()}
  if(v==='sr')showStarred(id);
  if(v==='cl'&&await confirmM('Clear chat?','Messages are deleted from this device only.','Clear',1)){await delChat(id);g.last=null;g.unread=0;saveC(g);if(S.cur===id){S.msgs=[];renderMsgs()}renderList()}
- if(v==='inv')await groupInvite(g);if(v==='sub')await newGroup(0,g.gid);
+ if(v==='set')await groupSettings(g);
+ if(v==='inv'){if(host)await groupInvite(g);else toast(gSendTo(g.host,{v:1,t:'ginvq',gid:g.gid})?'Asking the admin for an invitation…':'The admin device is offline.')}if(v==='sub')await newGroup(0,g.gid);
  const leave=async del=>{await delChat(id);await dbDel('contacts',id);S.cs.delete(id);if(S.cur===id){S.cur=null;$('#chat').classList.remove('has');$('#v-chats').classList.remove('open');syncNav()}renderList()};
  if(v==='del'&&await confirmM('Delete '+g.name+'?','Members are told it was deleted. Messages are removed from this device.','Delete',1)){for(const x of g.members)gSendTo(x.id,{v:1,t:'gdel',gid:g.gid});await leave()}
  if(v==='lv'&&await confirmM('Leave '+g.name+'?','You stop receiving messages and its history is removed from this device.','Leave',1)){gSendTo(g.host,{v:1,t:'gleave',gid:g.gid});await leave()}}
-function teamInit(){if(!S.cs.has('g:team')){const g={id:'g:team',grp:1,gid:'team',name:TEAM.name,host:TEAM.host||'',hostName:'',ann:0,comm:0,parent:'',subs:[],sys:1,members:[],inv:{},unread:0,created:Date.now(),pending:TEAM.host&&TEAM.host!==S.me.id?1:0};S.cs.set('g:team',g);saveC(g)}
- const g=S.cs.get('g:team');if(TEAM.host&&TEAM.host===S.me.id&&g.host!==S.me.id){g.host=S.me.id;g.hostName=S.me.name;g.pending=0;saveC(g)}}
+function teamInit(){if(!S.cs.has('g:team')){const g={id:'g:team',grp:1,gid:'team',name:TEAM.name,host:TEAM.host||'',hostName:'',ann:0,comm:0,parent:'',subs:[],sys:1,members:[],inv:{},unread:0,created:Date.now(),pending:TEAM.host&&TEAM.host!==S.me.id?1:0,ann:1,admins:[],desc:'',invAdmin:1,hist:50,dis:0,cfg:1};S.cs.set('g:team',g);saveC(g)}
+ const g=S.cs.get('g:team');if(TEAM.host&&TEAM.host===S.me.id&&!g.cfg){g.ann=1;g.invAdmin=1;g.cfg=1;saveC(g)}if(TEAM.host&&TEAM.host===S.me.id&&g.host!==S.me.id){g.host=S.me.id;g.hostName=S.me.name;g.pending=0;saveC(g)}}
 function teamJoin(){const g=S.cs.get('g:team');if(!g||!TEAM.host||TEAM.host===S.me.id||!g.pending||!S.peer||!S.peer.open)return;if((g.tries=(g.tries||0)+1)>8)return;
  const c=S.peer.connect(TEAM.host,{reliable:true});c._gj={gid:'team',tok:''};onConn(c,true);setTimeout(()=>{if(g.pending)teamJoin()},30000)}
+/* ---------- group settings (admins only) ---------- */
+function applySet(g,set,owner){if(typeof set.name==='string'&&!g.sys){const n=set.name.trim().slice(0,40);if(n)g.name=n}
+ if(typeof set.desc==='string')g.desc=set.desc.slice(0,200);if(typeof set.ann==='boolean')g.ann=set.ann?1:0;if(typeof set.invAdmin==='boolean')g.invAdmin=set.invAdmin?1:0;
+ if([0,50,300].includes(set.hist))g.hist=set.hist;if([0,86400,604800].includes(set.dis))g.dis=set.dis;
+ if(owner&&Array.isArray(set.admins))g.admins=set.admins.filter(x=>typeof x==='string'&&g.members.some(m=>m.id===x)).slice(0,50)}
+async function groupSettings(g){const can=isAdmin(g,S.me.id),ro=!can;
+ const nm=h('input',{value:g.name,maxlength:40,disabled:ro||!!g.sys,'aria-label':'Group name'}),ds=h('textarea',{rows:3,maxlength:200,disabled:ro,'aria-label':'Description'},g.desc||''),
+  ann=h('input',{type:'checkbox',style:'width:auto',checked:!!g.ann,disabled:ro}),inv=h('input',{type:'checkbox',style:'width:auto',checked:!!g.invAdmin,disabled:ro}),
+  hist=h('select',{disabled:ro,'aria-label':'History for new members'},[[0,'None'],[50,'Last 50 messages'],[300,'Last 300 messages']].map(([v,l])=>h('option',{value:v,selected:(g.hist===undefined?50:g.hist)===v},l))),
+  dis=h('select',{disabled:ro,'aria-label':'Disappearing messages'},[[0,'Off'],[86400,'24 hours'],[604800,'7 days']].map(([v,l])=>h('option',{value:v,selected:(g.dis||0)===v},l)));
+ const v=await modal((g.comm?'Community':'Group')+' settings',h('div',{},h('p',{},can?'Only admins can change these settings.':'Only admins can change these settings. You can view them.'),h('p',{},'Name'),nm,h('p',{},'Description'),ds,h('label',{class:'row'},ann,'Only admins can send messages'),h('label',{class:'row'},inv,'Only admins can invite people'),h('p',{},'History shown to new members'),hist,h('p',{},'Disappearing messages'),dis),can?[['Cancel','no'],['Save','ok','pri']]:[['Close','no']]);
+ if(v!=='ok'||!can)return;const set={name:nm.value,desc:ds.value,ann:ann.checked,invAdmin:inv.checked,hist:+hist.value,dis:+dis.value};
+ if(isHost(g)){applySet(g,set,true);await saveC(g);gBroadcastInfo(g);renderList();if(S.cur===g.id)renderHead();toast('Settings saved.')}else toast(gSendTo(g.host,{v:1,t:'gset',gid:g.gid,set})?'Settings sent to the host device.':'The host device is offline, try again later.')}
+/* ---------- relay: posts and status for offline authors ---------- */
+const isRelay=()=>!!TEAM.host&&TEAM.host===S.me.id&&S.prefs.relaySrv!==false;
+let R={st:{},po:{}},rT=0;
+async function rLoad(){R=(await dbGet('kv','relay').catch(()=>null))||R;R.st=R.st||{};R.po=R.po||{}}
+const rSaveSoon=()=>{clearTimeout(rT);rT=setTimeout(()=>{if(isRelay())safe(dbPut('kv',R,'relay'))},1500)};
+const rUploadSoon=()=>{clearTimeout(S.rU);S.rU=setTimeout(()=>rUpload(),800)};
+const rAud=k=>[...S.cs.values()].filter(c=>c.id!=='self'&&!c.grp&&!c.hidden&&!c.blocked&&(k==='st'?stAllowed(c.id):poAllowed(c.id))).map(c=>c.id);
+function rUpload(force){if(!S.me||S.prefs.relay===false||!TEAM.host||TEAM.host===S.me.id)return;const c=lk(TEAM.host).conn;if(!c||!c.open)return;if(force||!S.rsent)S.rsent=new Set();
+ for(const k of ['st','po']){const list=k==='st'?S.sts.mine:S.posts.mine;
+  for(const x of list){if(S.rsent.has(k+x.id))continue;try{c.send({v:1,t:'rup',k,id:x.id,ts:x.ts,kd:x.k||'',txt:x.txt||'',bg:x.bg||'',img:x.img||'',ex:x.ex||0})}catch{return}S.rsent.add(k+x.id)}
+  try{c.send({v:1,t:'rupl',k,ids:list.map(x=>x.id),aud:rAud(k)})}catch{return}}}
+function rStore(au,d){const k=d.k;if(k!=='st'&&k!=='po')return;if(typeof d.id!=='string'||d.id.length>40||!Number.isFinite(d.ts)||typeof d.txt!=='string')return;
+ const img=typeof d.img==='string'&&d.img.startsWith('data:image/jpeg;base64,')&&d.img.length<500000?d.img:'';if(k==='st'&&d.kd==='img'&&!img)return;if(k==='po'&&!d.txt&&!img)return;
+ const E=R[k][au]||(R[k][au]={aud:[],items:[],upd:0});if(E.items.some(x=>x.id===d.id))return;
+ E.items.push({id:d.id,ts:Math.min(d.ts,Date.now()),kd:d.kd==='img'?'img':'text',txt:d.txt.slice(0,k==='st'?700:1000),bg:/^#[0-9a-f]{6}$/i.test(d.bg)?d.bg:'#0f9d8f',img,ex:Number.isFinite(d.ex)?d.ex:0});
+ E.items.sort((a,b)=>a.ts-b.ts);const cap=k==='st'?10:20;if(E.items.length>cap)E.items.splice(0,E.items.length-cap);E.upd=Date.now();rSaveSoon()}
+function rList(au,d){const k=d.k;if((k!=='st'&&k!=='po')||!Array.isArray(d.ids)||!Array.isArray(d.aud))return;const E=R[k][au]||(R[k][au]={aud:[],items:[],upd:0});
+ E.items=E.items.filter(x=>d.ids.includes(x.id));E.aud=d.aud.filter(x=>typeof x==='string'&&x.length<=40).slice(0,500);E.upd=Date.now();rSaveSoon();for(const y of E.aud)rSyncTo(y)}
+function rSyncTo(y,fresh){if(!isRelay())return;const c=lk(y).conn;if(!c||!c.open)return;S.rS=S.rS||{};if(fresh||!S.rS[y])S.rS[y]=new Set();const sent=S.rS[y],now=Date.now();
+ for(const k of ['st','po'])for(const au in R[k]){if(au===y)continue;const E=R[k][au];if(!E.aud.includes(y))continue;const live=E.items.filter(x=>k==='po'||now<(x.ex||x.ts+DAY));
+  for(const x of live){if(sent.has(k+x.id))continue;try{c.send({v:1,t:'rdn',k,au,id:x.id,ts:x.ts,kd:x.kd,txt:x.txt,bg:x.bg,img:x.img,ex:x.ex||0})}catch{return}sent.add(k+x.id)}
+  try{c.send({v:1,t:'rdnl',k,au,ids:live.map(x=>x.id)})}catch{return}}}
+function rPrune(){if(!isRelay())return;const now=Date.now();let ch=0;for(const au in R.st){const E=R.st[au],n=E.items.length;E.items=E.items.filter(x=>now<(x.ex||x.ts+DAY));if(E.items.length!==n)ch=1;if(!E.items.length&&now-E.upd>30*DAY)delete R.st[au]}for(const au in R.po)if(!R.po[au].items.length&&now-R.po[au].upd>30*DAY)delete R.po[au];if(ch)rSaveSoon()}
+function onRdn(from,d){if(!TEAM.host||from!==TEAM.host||typeof d.au!=='string')return;const ct=S.cs.get(d.au);if(!ct||ct.hidden||ct.grp||ct.blocked||d.au===S.me.id)return;
+ if(d.k==='st')onSt(d.au,{id:d.id,ts:d.ts,k:d.kd,txt:d.txt,bg:d.bg,img:d.img,ex:d.ex,rel:1});else if(d.k==='po')onPo(d.au,{id:d.id,ts:d.ts,txt:d.txt,img:d.img,rel:1})}
+function onRdnl(from,d){if(!TEAM.host||from!==TEAM.host||typeof d.au!=='string'||!Array.isArray(d.ids))return;
+ if(d.k==='st'){const a=S.sts.theirs[d.au];if(a){S.sts.theirs[d.au]=a.filter(x=>!x.rel||d.ids.includes(x.id));stSave();if(S.tab==='status')renderStatus()}}
+ else if(d.k==='po'){const a=S.posts.theirs[d.au];if(a){S.posts.theirs[d.au]=a.filter(x=>!x.rel||d.ids.includes(x.id));poSave();renderPosts()}}}
 /* ---------- boot ---------- */
 (async()=>{
  try{S.me=await dbGet('kv','me');const pr=await dbGet('kv','prefs');if(pr)Object.assign(S.prefs,pr);for(const c of await dbAll('contacts'))S.cs.set(c.id,c);S.sts=(await dbGet('kv','st'))||S.sts;S.posts=(await dbGet('kv','po'))||S.posts;S.lock=(await dbGet('kv','lock'))||null;S.stat=(await dbGet('kv','stat'))||S.stat}
@@ -841,7 +892,7 @@ function teamJoin(){const g=S.cs.get('g:team');if(!g||!TEAM.host||TEAM.host===S.
  if(!S.cs.has('self')){const s={id:'self',name:'My Devices',local:true,unread:0};S.cs.set('self',s);await saveC(s)}
  if(!S.me){S.me={id:'cly-'+rnd(20),name:''};}
  if(!S.me.name){S.me.name=await ask('Welcome to SyncBee','Your display name','')||'Me';await safe(dbPut('kv',S.me,'me'))}
- teamInit();S.view='chats';stPrune();purge();renderList();syncNav();if(S.lock)showLock();
+ await rLoad();teamInit();S.view='chats';stPrune();purge();renderList();syncNav();if(S.lock)showLock();
  if(!window.isSecureContext)toast('Use localhost or HTTPS: secure features are unavailable here.');
  startPeer();handleHash();remindBackup();if(S.prefs.wake)wakeSet(true)})();
 </script>
